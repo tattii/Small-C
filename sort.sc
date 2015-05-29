@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include "small-c.c"
 
 int data[8] = {4, 2, 7, 6, 0, 1, 3, 5};
 
@@ -15,18 +15,12 @@ void sort(){
 	}
 }
 
-/* */
-void print(int d){
-	printf("%d\n", d);
-}
-
 void output(){
 	int i;
 	for (i = 0; i < 8; i++){
 		print(data[i]);
 	}
 }
-
 
 void main(){
 	sort();
