@@ -54,6 +54,9 @@ rule
 
   compound_statement: '{' declaration_list_opt statement_list_opt '}' { result = [:block, val[1], val[2]] }
 
+  declaration_list_opt: /* optional */
+                      | declaration_list
+
   declaration_list: declaration                  { result = [:declaration_list, val[0]] }
                   | declaration_list declaration { result.push val[1] }
 

@@ -1,5 +1,6 @@
 require 'strscan'
 require 'pp'
+require './small-c.tab.rb'
 
 class SmallC
 
@@ -21,7 +22,7 @@ def parse(str)
     when s.scan(/\d+/)
 	  push_token(:NUMBER, s.matched.to_i)
 	when s.scan(/int|void|if|else|while|for|return/)
-      push_token(s.matched.upcase, s.matched)
+      push_token(s.matched.upcase.to_sym, s.matched)
 	when s.scan(/;|,|\[|\]|\(|\)|\{|\}|\+|-|\*|\/|&|=|>|</)
       push_token(s.matched, s.matched)
 	when s.scan(/==|!=|<=|>=|&&|\|\|/)
@@ -32,8 +33,9 @@ def parse(str)
 	@last_pos = s.pos
   end
   @q.push [false, '$end']
-#  do_parse
   pp @q
+  @yydebug = true;
+  do_parse
 end
 
 def next_token
@@ -56,5 +58,5 @@ while true
   print '? '
   str = gets.chop!
   break if /q/i =~ str
-  parser.parse(str)
+  pp parser.parse(str)
 end
