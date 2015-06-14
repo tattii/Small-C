@@ -46,10 +46,17 @@ private
 def push_token(token_symbol, value)
   @q.push [token_symbol, {
     value: value,
-    line: @line,
-    line_pos: @last_pos - @last_newline_pos
+    pos: [@line, @last_pos - @last_newline_pos]
   }]
 end
+end
+
+class Node
+  def initialize(type, attr, pos)
+    @type = type
+	@attr = attr
+	@pos = pos 
+  end
 end
 
 parser = SmallC.new
