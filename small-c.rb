@@ -96,8 +96,6 @@ class Node
       end
     when :while
       "while ( #{list_s @attr[:cond]} ) { #{@attr[:stmt].to_s} }"
-    when :for
-      "for (#{list_s @attr[:init]}; #{list_s @attr[:cond]}; #{list_s @attr[:iter]}) #{@attr[:stmt].to_s}"
     when :return 
       "return #{list_s @attr[0]}"
 
@@ -111,18 +109,13 @@ class Node
     when :op, :logical_op, :rel_op, :eq_op
       "#{@attr[1].to_s} #{@attr[0]} #{@attr[2].to_s}"
 
-    when :minus
-      "-#{@attr[0]}"
     when :address
       "&#{@attr[0]}"
     when :pointer
       "*#{@attr[0]}"
 
-    when :array
-      "#{@attr[:name].to_s}[#{list_s @attr[:index]}]"
     when :call
       "#{@attr[:name]}(#{list_s @attr[:args]})"
-
     when :variable
       @attr[:name]
     when :number
