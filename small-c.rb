@@ -15,17 +15,18 @@ def parse(str)
     case
     when s.scan(/[ \t]+/)
     when s.scan(/#.*?\n/)
+      @line = @line + 1
     when s.scan(/\n/)
-      @line++
+      @line = @line + 1
       @last_newline_pos = s.pos
 
     when s.scan(/\d+/)
       push_token(:NUMBER, s.matched.to_i)
     when s.scan(/int|void|if|else|while|for|return/)
       push_token(s.matched.upcase.to_sym, s.matched)
-    when s.scan(/;|,|\[|\]|\(|\)|\{|\}|\+|-|\*|\/|&|=|>|</)
-      push_token(s.matched, s.matched)
     when s.scan(/==|!=|<=|>=|&&|\|\|/)
+      push_token(s.matched, s.matched)
+    when s.scan(/;|,|\[|\]|\(|\)|\{|\}|\+|-|\*|\/|&|=|>|</)
       push_token(s.matched, s.matched)
     when s.scan(/\w+/)
       push_token(:IDENT, s.matched)
@@ -89,14 +90,14 @@ class Node
 
     when :if
       if @attr[:else_stmt]
-        "if (#{list_s @attr[:cond]}) {#{@attr[:stmt]}}"
+        "if (#{list_s @attr[:cond]}) #{@attr[:stmt]} else #{@attr[:else_stmt]}"
       else
-        "if (#{list_s @attr[:cond]}) {#{@attr[:stmt]}} else {#{@attr[:else_stmt]}}"
+        "if (#{list_s @attr[:cond]}) #{@attr[:stmt]}"
       end
     when :while
       "while ( #{list_s @attr[:cond]} ) { #{@attr[:stmt].to_s} }"
     when :for
-      "for (#{lsit_s @attr[:init]}; #{list_s @attr[:cond]}; #{list_s @attr[:iter]}) {#{@attr[:stmt].to_s}}"
+      "for (#{list_s @attr[:init]}; #{list_s @attr[:cond]}; #{list_s @attr[:iter]}) #{@attr[:stmt].to_s}"
     when :return 
       "return #{list_s @attr[0]}"
 
@@ -118,7 +119,7 @@ class Node
       "*#{@attr[0]}"
 
     when :array
-      "#{@attr[:name].to_s}[#{@attr[:index].to_s}]"
+      "#{@attr[:name].to_s}[#{list_s @attr[:index]}]"
     when :call
       "#{@attr[:name]}(#{list_s @attr[:args]})"
 
@@ -132,23 +133,30 @@ class Node
   def list_s(list)
     str = ""
     if list
-      list.each do |node|
-        str += node.to_s
-      end
+      str = list.map{|node| node.to_s }.join(" ")
     end
     return str
   end
 end
 
 
-# repl
 parser = SmallC.new
-while true
-  puts
-  print '? '
-  str = gets.chop!
-  break if /q/i =~ str
-  tree = parser.parse(str)
+if ARGV[0]
+  file = File.open(ARGV[0]).read
+  tree = parser.parse(file)
   pp tree
   print parser.to_s(tree)
+
+else
+  # repl
+  while true
+    puts
+    print '? '
+    str = gets.chop!
+    break if /q/i =~ str
+    tree = parser.parse(str)
+    pp tree
+    print parser.to_s(tree)
+  end
 end
+

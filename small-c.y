@@ -107,9 +107,9 @@ rule
                          | '&' unary_expr                       { result = Node.new(:address, [val[1]], val[0][:pos]) }
                          | '*' unary_expr                       { result = Node.new(:pointer, [val[1]], val[0][:pos]) }
 
-  postfix_expr           : primary_expr 
-                         | postfix_expr '[' expression ']'      { result = Node.new(:array, {name:val[0], index:val[2]}, val[0][:pos]) }
-                         | IDENT '(' argument_expr_list_opt ')' { reuslt = Node.new(:call, {name:val[0][:value], args:val[2]}, val[0][:pos]) }
+  postfix_expr           : primary_expr                         { result = val[0] } 
+                         | postfix_expr '[' expression ']'      { result = Node.new(:array, {name:val[0], index:val[2]}, val[0].pos) }
+                         | IDENT '(' argument_expr_list_opt ')' { result = Node.new(:call, {name:val[0][:value], args:val[2]}, val[0][:pos]) }
 
   primary_expr           : IDENT                                { result = Node.new(:variable, {name:val[0][:value]}, val[0][:pos]) }
                          | NUMBER                               { result = Node.new(:number, {value:val[0][:value]}, val[0][:pos]) }
