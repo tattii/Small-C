@@ -53,11 +53,9 @@ rule
                          | FOR '(' expression_opt ';' expression_opt ';' expression_opt ')' statement
                                                                 { # for syntax sugar
                                                                   stmt = val[8]
-																  iter = val[6]
-																  pp stmt
+                                                                  iter = val[6]
                                                                   if (stmt.type == :compound_stmt)
                                                                     stmt.attr[:stmts].concat iter
-																	pp stmt
                                                                   else
                                                                     stmt = Node.new(:compound_stmt, {decls:[], stmts:[stmt, iter]}, val[0][:pos])
                                                                   end
