@@ -89,20 +89,16 @@ class Node
       "#{@attr[:type]} #{list_s @attr[:name]}"
 
     when :if
-      if @attr[:else_stmt]
-        "if (#{list_s @attr[:cond]}) #{@attr[:stmt]} else #{@attr[:else_stmt]}"
-      else
-        "if (#{list_s @attr[:cond]}) #{@attr[:stmt]}"
-      end
+      "if (#{list_s @attr[:cond]}) #{@attr[:stmt].to_s} else #{@attr[:else_stmt].to_s}"
     when :while
-      "while ( #{list_s @attr[:cond]} ) { #{@attr[:stmt].to_s} }"
+      "while ( #{list_s @attr[:cond]} ) #{@attr[:stmt].to_s}"
     when :return 
       "return #{list_s @attr[0]}"
 
     when :compound_stmt
       "{ #{list_s @attr[:decls]} #{list_s @attr[:stmts]} }"
     when :expr
-      "#{list_s @attr[0]};"
+      "#{list_s @attr[0]}"
 
     when :assign
       "#{@attr[0].to_s} = #{@attr[1].to_s}"
@@ -112,7 +108,7 @@ class Node
     when :address
       "&#{@attr[0]}"
     when :pointer
-      "*#{@attr[0]}"
+      "*(#{@attr[0]})"
 
     when :call
       "#{@attr[:name]}(#{list_s @attr[:args]})"

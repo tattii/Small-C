@@ -51,18 +51,21 @@ rule
                                                                 { result = Node.new(:if, {cond:val[2], stmt:val[4], else_stmt:val[6]}, val[0][:pos]) }
                          | WHILE '(' expression ')' statement   { result = Node.new(:while, {cond:val[2], stmt:val[4]}, val[0][:pos]) }
                          | FOR '(' expression_opt ';' expression_opt ';' expression_opt ')' statement
-                                                                {   # for syntax sugar
-																	stmt = val[8], iter = val[6]
-																 	if (stmt.type == :compound_stmt)
-																		stmt.attr[:stmts].push iter
-																	else
-																		stmt = Node.new(:compound_stmt, {decls:[], stmts:[stmt, iter]}, val[0][:pos])
-																	end
-																	result = [
-																		Node.new(:expr, [val[2]], nil),
-																		Node.new(:while, {cond:val[4], stmt:stmt}, val[0][:pos])
-																	]
-																}
+                                                                { # for syntax sugar
+                                                                  stmt = val[8]
+																  iter = val[6]
+																  pp stmt
+                                                                  if (stmt.type == :compound_stmt)
+                                                                    stmt.attr[:stmts].concat iter
+																	pp stmt
+                                                                  else
+                                                                    stmt = Node.new(:compound_stmt, {decls:[], stmts:[stmt, iter]}, val[0][:pos])
+                                                                  end
+                                                                  result = [
+                                                                    Node.new(:expr, [val[2]], nil),
+                                                                    Node.new(:while, {cond:val[4], stmt:stmt}, val[0][:pos])
+                                                                  ]
+                                                                }
                          | RETURN expression_opt ';'            { result = Node.new(:return, [val[1]], val[0][:pos]) }
 
   compound_statement     : '{' declaration_list_opt statement_list_opt '}'
@@ -119,12 +122,12 @@ rule
                          | '*' unary_expr                       { result = Node.new(:pointer, [val[1]], val[0][:pos]) }
 
   postfix_expr           : primary_expr                         { result = val[0] } 
-                         | postfix_expr '[' expression ']'      { result = Node.new(:pointer, [Node.new(:op, ['+', val[0], val[2]]], val[0].pos) }
+                         | postfix_expr '[' expression ']'      { result = Node.new(:pointer, [Node.new(:op, ['+', val[0], Node.new(:expr, [val[2]], val[1][:pos])], nil)], val[0].pos) }
                          | IDENT '(' argument_expr_list_opt ')' { result = Node.new(:call, {name:val[0][:value], args:val[2]}, val[0][:pos]) }
 
   primary_expr           : IDENT                                { result = Node.new(:variable, {name:val[0][:value]}, val[0][:pos]) }
                          | NUMBER                               { result = Node.new(:number, {value:val[0][:value]}, val[0][:pos]) }
-                         | '(' expression ')'                   { result = val[1] }
+                         | '(' expression ')'                   { result = Node.new(:expr, [val[1]], val[0][:pos]) }
 
   argument_expr_list_opt : /* optional */
                          | argument_expr_list
