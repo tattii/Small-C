@@ -1,4 +1,4 @@
-class SmallC
+class SmallC::Parse
 rule
   target                 : program
                          | /* none */
