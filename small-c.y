@@ -116,7 +116,13 @@ rule
 
   unary_expr             : postfix_expr 
                          | '-' unary_expr                       { result = Node.new(:op, ['-', 0, val[1]], val[0][:pos]) }
-                         | '&' unary_expr                       { result = Node.new(:address, [val[1]], val[0][:pos]) }
+                         | '&' unary_expr                       { # for syntax sugar
+                                                                  if val[1].type == :pointer
+                                                                    result = val[1].attr[0]
+                                                                  else
+                                                                    result = Node.new(:address, [val[1]], val[0][:pos])
+                                                                  end
+                                                                }
                          | '*' unary_expr                       { result = Node.new(:pointer, [val[1]], val[0][:pos]) }
 
   postfix_expr           : primary_expr                         { result = val[0] } 
