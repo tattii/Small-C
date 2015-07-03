@@ -85,11 +85,11 @@ module SmallC
       when :declarator
         "#{list_s @attr[0]}"
       when :function_proto
-        "#{@attr[:type]} #{@attr[:name].to_s} { #{@attr[:decl].to_s} }"
+        "#{@attr[:type]} #{@attr[:decl].to_s}"
       when :function_decl
-        "#{list_s @attr[:name]} #{@attr[:decl].to_s}"
+        "#{list_s @attr[:name]}(#{list_s @attr[:params]})"
       when :function_def
-        "#{@attr[:type]} #{@attr[:name].to_s} #{@attr[:stmts].to_s}"
+        "#{@attr[:type]} #{@attr[:decl].to_s} #{@attr[:stmts].to_s}"
       when :param
         "#{@attr[:type]} #{list_s @attr[:name]}"
 

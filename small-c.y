@@ -27,7 +27,7 @@ rule
                          | '*' IDENT '(' param_type_list_opt ')'  { result = Node.new(:function_decl, {name:['*', val[1][:value]], params:val[3]}, val[0][:pos]) }
  
   function_definition    : type_specifier function_declarator compound_statement
-                                                                { result = Node.new(:function_def, {type:val[0][:value], name:val[1], stmts:val[2]}, val[0][:pos]) }
+                                                                { result = Node.new(:function_def, {type:val[0][:value], decl:val[1], stmts:val[2]}, val[0][:pos]) }
 
   param_type_list_opt    : /* optional */
                          | param_type_list
