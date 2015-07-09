@@ -8,6 +8,17 @@ require './small-c.tab.rb'
 
 module SmallC
 
+  def self.compile(str)
+    parser = SmallC::Parse.new
+    tree = parser.parse(str)
+    pp tree
+    p parser.to_s(tree)
+    symbol = SmallC::SymbolAnalyze.new
+    symbol.analyze(tree)
+    pp tree
+    p parser.to_s(tree)
+  end
+
   class Parse
     def parse(str)
       @q = []
@@ -39,7 +50,7 @@ module SmallC
         @last_pos = s.pos
       end
       @q.push [false, '$end']
-      pp @q
+      # pp @q
       @yydebug = true
       do_parse # racc parse
     end
@@ -138,14 +149,11 @@ end
 #
 # test
 # 
-parser = SmallC::Parse.new
 
 # file
 if ARGV[0]
-  file = File.open(ARGV[0]).read
-  tree = parser.parse(file)
-  pp tree
-  print parser.to_s(tree)
+  str = File.open(ARGV[0]).read
+  SmallC::compile(str)
 
 # repl
 else
@@ -154,9 +162,7 @@ else
     print '? '
     str = gets.chop!
     break if /q/i =~ str
-    tree = parser.parse(str)
-    pp tree
-    print parser.to_s(tree)
+    SmallC::compile(str)
   end
 end
 
