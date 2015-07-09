@@ -21,7 +21,7 @@ rule
   direct_declarator      : IDENT                                { result = [val[0][:value]] }
                          | IDENT '[' NUMBER ']'                 { result = [val[0][:value], val[2][:value]] }
 
-  function_prototype     : type_specifier function_declarator ';' { result = Node.new(:functoin_proto, {type:val[0][:value], decl:val[1]}, val[0][:pos]) }
+  function_prototype     : type_specifier function_declarator ';' { result = Node.new(:function_proto, {type:val[0][:value], decl:val[1]}, val[0][:pos]) }
 
   function_declarator    : IDENT '(' param_type_list_opt ')'      { result = Node.new(:function_decl, {name:[val[0][:value]], params:val[2]}, val[0][:pos]) }
                          | '*' IDENT '(' param_type_list_opt ')'  { result = Node.new(:function_decl, {name:['*', val[1][:value]], params:val[3]}, val[0][:pos]) }
