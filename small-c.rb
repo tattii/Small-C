@@ -9,20 +9,24 @@ require './small-c.tab.rb'
 module SmallC
 
   def self.compile(str)
-    parser = SmallC::Parse.new
-    tree = parser.parse(str)
-    pp tree
-    p parser.to_s(tree)
-    symbol = SmallC::SymbolAnalyze.new
-    symbol.analyze(tree)
-    pp tree
-    p parser.to_s(tree)
+    begin 
+      parser = SmallC::Parse.new
+      tree = parser.parse(str)
+      pp tree
+      p parser.to_s(tree)
+      symbol = SmallC::SymbolAnalyze.new
+      symbol.analyze(tree)
+      pp tree
+      p parser.to_s(tree)
+    rescue => e
+      puts e.message
+    end
   end
 
   class Parse
     def parse(str)
       @q = []
-      @line = 0
+      @line = 1
       @last_newline_pos = 0
       @last_pos = 0
       s = StringScanner.new(str)
@@ -82,7 +86,7 @@ module SmallC
 
   class Node
     attr_accessor :type, :attr, :pos
-    def initialize(type, attr, pos_node)
+    def initialize(type, attr, pos)
       @type = type
       @attr = attr
       @pos = pos 
