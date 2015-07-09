@@ -3,7 +3,7 @@ rule
   target                 : program
                          | /* none */
 
-  program                : external_declaration                 { result = [:program, val[0]] }
+  program                : external_declaration                 { result = [val[0]] }
                          | program external_declaration         { result.push val[1] }
 
   external_declaration   : declaration
@@ -15,8 +15,8 @@ rule
   declarator_list        : declarator                           { result = [val[0]] }
                          | declarator_list ',' declarator       { result.push val[2] }
 
-  declarator             : direct_declarator                    { result = Node.new(:declarator, [val[0]], nil) }
-                         | '*' direct_declarator                { result = Node.new(:declarator, ['*', val[1]].flatten, nil) }
+  declarator             : direct_declarator                    { result = Node.new(:declarator, val[0], nil) }
+                         | '*' direct_declarator                { result = Node.new(:declarator, ['*', val[1]], nil) }
 
   direct_declarator      : IDENT                                { result = [val[0][:value]] }
                          | IDENT '[' NUMBER ']'                 { result = [val[0][:value], val[2][:value]] }

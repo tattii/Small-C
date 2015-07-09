@@ -66,7 +66,6 @@ module SmallC
     def to_s(program)
       if program
         str = ""
-        program.shift
         program.each do |decl|
           str += decl.to_s
         end
@@ -98,7 +97,7 @@ module SmallC
         "#{@attr[:type].to_s} #{list_s @attr[:decls]};"
 
       when :declarator
-        "#{list_s @attr[0]}"
+        "#{list_s @attr.flatten}"
       when :function_proto
         "#{@attr[:type]} #{@attr[:decl].to_s}"
       when :function_decl
@@ -146,7 +145,122 @@ module SmallC
       end
       return str
     end
+
+    def pos_s
+      return "(at #{@pos[0]}:#{@pos[1]})"
+    end
   end
+
+  class Object
+    attr_accessor :name, :lev, :kind, :type
+    def initialize(name, lev, kind, type)
+      @name = name
+      @lev = lev
+      @kind = kind
+      @type = type
+    end
+
+    def to_s
+      "{name:#{name}, lev:#{lev}, kind:#{kind}, type:#{type}}"
+    end
+  end
+
+
+  class Env
+    def initialize
+      @ids = {}
+    end
+
+    def lookup(id)
+      return @ids[id]
+    end
+
+    def add(id, data)
+      @ids[id] = data
+    end
+  end
+
+
+  class SymbolAnalyze
+    def analyze(list)
+      @env = Env.new
+      @level = 0
+      list.each do |node|
+        analyze_node(node)
+      end
+    end
+
+    def analyze_node(node)
+      case node.type
+      when :decl
+        type = node.attr[:type]
+        node.attr[:decls].each_with_index do |d, i|
+          decl = d.attr
+
+          # pointer
+          if decl[0] == "*"
+            type = [:pointer, type]
+            decl = decl[1]
+          end
+
+          name = decl[0]
+
+          # array
+          if decl[1]
+            type = [:array, type]
+          end
+
+          if defined = @env.lookup(name)
+            if defined.kind == :fun \
+              || defined.kind == :proto \
+              || defined.lev == 0 \
+              || defined.kind == :var && defined.lev == @level
+              raise "[error] already defined #{name} #{node.pos_s}"
+            elsif defined.kind == :param
+              warn "[warn] param #{name} defined #{node.pos_s}"
+            end
+          end
+
+          # declare
+          obj = Object.new(name, @level, :var, type)
+          @env.add(name, obj)
+          node.attr[:decls][i] = obj
+        end
+
+      when :param
+
+      when :functino_def
+
+      when :function_proto
+
+      when :variable
+
+      when :call
+
+      end
+
+      # round tree nodes
+      if node.attr.is_a?(Array)
+        node.attr.each do |e|
+          if e.is_a?(Array) && e[0].is_a?(Node)
+            analyze(e)
+          elsif e.is_a?(Node)
+            analyze_node(e)
+          end
+        end
+      elsif node.attr.is_a?(Hash)
+        node.attr.each_value do |v|
+          if v.is_a?(Array) && v[0].is_a?(Node)
+            analyze(v)
+          elsif v.is_a?(Node)
+            analyze_node(v)
+          end
+        end
+      end
+    end
+
+  end
+
 end
 
 
