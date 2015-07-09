@@ -177,8 +177,13 @@ module SmallC
 
 
   class Env
-    def initialize
-      @ids = {}
+    attr_reader :ids
+    def initialize(*env)
+      if env[0]
+        @ids = env[0].ids
+      else
+        @ids = {}
+      end
     end
 
     def lookup(id)
@@ -206,7 +211,6 @@ module SmallC
     def analyze_node(node)
       case node.type
       when :decl
-        pp @env
         type_decls = node.attr[:type]
         node.attr[:decls].each_with_index do |d, i|
           decl = d.attr
@@ -338,11 +342,23 @@ module SmallC
         else
           raise "[error] undefined #{name} #{node.pos_s}"
         end
-
       end
+      
+      # block level
+      if node.type == :compound_stmt
+        level_stash = @level
+        @level = (@level == 0) ? 2 : @level+1
+        env_stash = @env
+        @env = Env.new(@env)
+
+        analyze(node.attr[:decls]) if node.attr[:decls]
+        analyze(node.attr[:stmts]) if node.attr[:stmts]
+
+        @level = level_stash
+        @env = env_stash
 
       # round tree nodes
-      if node.attr.is_a?(Array)
+      elsif node.attr.is_a?(Array)
         node.attr.each do |e|
           if e.is_a?(Array) && e[0].is_a?(Node)
             analyze(e)
