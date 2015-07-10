@@ -226,7 +226,7 @@ module SmallC
 
           # array
           if decl[1]
-            type = [:array, type]
+            type = [:array, type, decl[1]]
           end
 
           if defined = @env.lookup(name)
@@ -268,16 +268,7 @@ module SmallC
         node.attr[:name] = obj
 
       when :function_proto
-        type = node.attr[:type]
-        decl = node.attr[:decl]
-        name
-
-        if decl.attr[:name][0] == "*"
-          name = decl.attr[:name][1]
-          type = [:pointer, type]
-        else
-          name = decl.attr[:name][0]
-        end
+        type, name = analyze_function_decl(node)
 
         if defined = @env.lookup(name)
           if defined.kind == :fun || defined.kind == :proto
@@ -291,20 +282,11 @@ module SmallC
           # declare
           obj = Object.new(name, @level, :proto, type)
           @env.add(name, obj)
-          decl.attr[:name] = obj
+          node.attr[:decl].attr[:name] = obj
         end
 
       when :function_def
-        type = node.attr[:type]
-        decl = node.attr[:decl]
-        name
-
-        if decl.attr[:name][0] == "*"
-          name = decl.attr[:name][1]
-          type = [:pointer, type]
-        else
-          name = decl.attr[:name][0]
-        end
+        type, name = analyze_function_decl(node)
 
         if defined = @env.lookup(name)
           if defined.kind != :proto
@@ -315,7 +297,9 @@ module SmallC
         # declare
         obj = Object.new(name, @level, :fun, type)
         @env.add(name, obj)
-        decl.attr[:name] = obj
+        node.attr[:decl].attr[:name] = obj
+
+        analyze_node(node.attr[:stmts])
 
       when :variable
         name = node.attr[:name]
@@ -342,10 +326,9 @@ module SmallC
         else
           raise "[error] undefined #{name} #{node.pos_s}"
         end
-      end
       
       # block level
-      if node.type == :compound_stmt
+      when :compound_stmt
         level_stash = @level
         @level = (@level == 0) ? 2 : @level+1
         env_stash = @env
@@ -358,25 +341,51 @@ module SmallC
         @env = env_stash
 
       # round tree nodes
-      elsif node.attr.is_a?(Array)
-        node.attr.each do |e|
-          if e.is_a?(Array) && e[0].is_a?(Node)
-            analyze(e)
-          elsif e.is_a?(Node)
-            analyze_node(e)
+      else
+        if node.attr.is_a?(Array)
+          node.attr.each do |e|
+            if e.is_a?(Array) && e[0].is_a?(Node)
+              analyze(e)
+            elsif e.is_a?(Node)
+              analyze_node(e)
+           end
+          end
+        elsif node.attr.is_a?(Hash)
+          node.attr.each_value do |v|
+            if v.is_a?(Array) && v[0].is_a?(Node)
+              analyze(v)
+            elsif v.is_a?(Node)
+              analyze_node(v)
+            end
           end
         end
-      elsif node.attr.is_a?(Hash)
-        node.attr.each_value do |v|
-          if v.is_a?(Array) && v[0].is_a?(Node)
-            analyze(v)
-          elsif v.is_a?(Node)
-            analyze_node(v)
-          end
-        end
+
       end
     end
 
+    def analyze_function_decl(node)
+      r_type = node.attr[:type]
+      decl = node.attr[:decl]
+      name = nil
+
+      if decl.attr[:name][0] == "*"
+        name = decl.attr[:name][1]
+        r_type = [:pointer, r_type]
+      else
+        name = decl.attr[:name][0]
+      end
+
+      # params
+      type = [:fun, r_type]
+      if decl.attr[:params]
+        analyze(decl.attr[:params])
+        decl.attr[:params].each do |param|
+          type.push param.attr[:name].type
+        end
+      end
+
+      return type, name
+    end
   end
 
 end

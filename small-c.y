@@ -40,8 +40,8 @@ rule
   param_declarator       : IDENT                                { result = [val[0][:value]] }
                          | '*' IDENT                            { result = ['*', val[1][:value]] }
 
-  type_specifier         : INT
-                         | VOID
+  type_specifier         : INT                                  { result[:value] = :int }
+                         | VOID                                 { result[:value] = :void }
 
   statement              : ';'                                  { result = Node.new(:skip) }
                          | expression ';'                       { result = Node.new(:expr, [val[0]], nil) } 
