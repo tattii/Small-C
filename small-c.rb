@@ -388,6 +388,165 @@ module SmallC
     end
   end
 
+
+  #
+  # 型検査
+  #
+  class TypeCheck
+    def well_typed?(list)
+      list.eaah do |node|
+        check_type(node)
+      end
+    end
+
+    def well_typed_node?(node)
+      case node.type
+      when :function_def
+        check_type(node.attr[:stmts])
+
+      when :skip
+        true
+
+      when :expr
+        return check_type_expr_stmt(node.attr[0]) != nil
+
+      when :if
+        return check_type_expr_stmt(node.attr[:cond]) == :int \
+          && well_typed_node?(node.attr[:stmt]) \
+          && well_typed_node?(node.attr[:else_stmt]) 
+
+      end
+    end
+
+    #
+    # 式文 expr_stmt の型
+    # :void
+    # :int
+    # :int_
+    # :int__
+    #
+    def check_type_expr_stmt(expr_stmt)
+      last_type = nil
+      expr_stmt.each do |expr|
+
+
+      end
+    end
+
+    def check_type(expr)
+      case expr.type
+      when :assign
+        # object check
+        unless expr.attr[0].type == :pointer \
+          || expr.attr[0].kind == :var && expr.attr[0].type[0] != :array
+          raise "[object error] invalid assign object #{expr.pos_s}"
+        end
+
+        e1_type = check_type(expr.attr[0])
+        e2_type = check_type(expr.attr[1])
+        if e1_type == e2_type
+          return e2_type
+        else
+          raise "[type error] assign type differs: #{e1_type},#{e2_type} #{expr.pos_s}"
+        end
+
+      when :logical_op
+        if check_type(epxr.attr[1]) == :int && check_type(expr.attr[2]) == :int
+          return :int
+        else
+          raise "[type error] #{expr.attr[0]} operand type must be int #{expr.pos_s}"
+        end
+
+      when :eq_op, :rel_op
+        e1_type = check_type(expr.attr[1])
+        e2_type = check_type(expr.attr[2])
+        if e1_type == e2_type
+          return :int
+        else
+          raise "[type error] #{expr.attr[0]} type differs #{expr.pos_s}"
+        end
+
+      when :op
+        op = expr.attr[0]
+        e1_type = check_type(expr.attr[1])
+        e2_type = check_type(expr.attr[2])
+        if e1_type == :int && e2_type == :int
+          return :int
+        elsif op == '+' || op == '-'
+          if   e1_type == :int_ && e2_type == :int \
+            || e2_type == :int_ && e1_type == :int
+            return :int_
+          elsif e1_type == :int__ && e2_type == :int \
+            ||  e2_type == :int__ && e1_type == :int
+            return :int__
+          end
+        else
+          raise "[type error] #{op} type differs: #{e1_type},#{e2_type} #{expr.pos_s}"
+        end
+
+      when :address
+        # object check
+        if expr.attr[0].kind != :var
+          raise "[object error] &address operand must be var #{expr.pos_s}"
+        end
+
+        if check_type(expr.attr[0]) == :int
+          return :int
+        else
+          raise "[type error] &address type must be int #{expr.pos_s}"
+        end
+
+      when :pointer
+        e_type = check_type(expr.attr[0])
+        if e_type == :int_
+          return :int
+        elsif e_type == :int__
+          return :int_
+        else
+          raise "[type error] invalid *pointer type: #{e_type} #{expr.pos_s}"
+        end
+        
+      when :call
+        function = expr.attr[:name]
+        args = expr.attr[:args]
+
+        if args.length != function.type.length-2
+          raise "[error] wrong number of arguments #{expr.pos_s}"
+        end
+
+        if args
+          args.each_with_index do |arg, i|
+            arg_type = check_type(arg)
+            unless arg_type && arg_type == function.type[i+2]
+              raise "[type error] argument type diffes: #{arg_type} #{expr.pos_s}"
+            end
+          end
+        end
+
+        return function.type[1]
+
+      when :variable
+        type = expr.attr[:name].type
+        if type[0] == :array
+          if type[1] == :int
+            return :int_
+          elsif type[1] == :int_
+            return :int__
+          else
+            raise "[type error] invalid array type: #{type[1]} #{expr.pos_s}"
+          end
+        end
+        return type
+
+      when :number
+        return :int
+
+      when :expr
+        return check_type_expr_stmt(expr.attr[0])
+      end
+    end
+
+  end
 end
 
 
