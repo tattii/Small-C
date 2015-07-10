@@ -16,6 +16,8 @@ module SmallC
       p parser.to_s(tree)
       symbol = SmallC::SymbolAnalyze.new
       symbol.analyze(tree)
+      type_check = SmallC::TypeCheck.new
+      p type_check.well_typed?(tree)
       pp tree
       p parser.to_s(tree)
     rescue Racc::ParseError => e
@@ -394,26 +396,70 @@ module SmallC
   #
   class TypeCheck
     def well_typed?(list)
-      list.eaah do |node|
-        check_type(node)
+      well = true
+      list.each do |node|
+        well &= well_typed_node?(node)
       end
+      return well
     end
 
     def well_typed_node?(node)
       case node.type
       when :function_def
-        check_type(node.attr[:stmts])
+        @function_return_type = node.attr[:decl].attr[:name].type[1]
+        well_typed = well_typed_node?(node.attr[:stmts])
+        @function_return_type = nil
+        return well_typed
 
       when :skip
-        true
+        return true
 
       when :expr
-        return check_type_expr_stmt(node.attr[0]) != nil
+        if check_type_expr_stmt(node.attr[0]) != nil
+          return true
+        else
+          raise "[type error] wrong expression type #{node.pos_s}"
+        end
 
       when :if
-        return check_type_expr_stmt(node.attr[:cond]) == :int \
+        if check_type_expr_stmt(node.attr[:cond]) == :int \
           && well_typed_node?(node.attr[:stmt]) \
-          && well_typed_node?(node.attr[:else_stmt]) 
+          && well_typed_node?(node.attr[:else_stmt])
+          return true
+        else
+        raise "[type error] if condition type must be int #{node.pos_s}"
+        end
+
+      when :while
+        if check_type_expr_stmt(node.attr[:cond]) == :int \
+          && well_typed_node?(node.attr[:stmt])
+          return true
+        else
+          raise "[type error] while condition type must be int #{node.pos_s}"
+        end
+
+      when :return
+        if @function_return_type == :void
+          if node.attr[0]
+            raise "[type error] return type is void #{node.pos_s}"
+          else
+            return true
+          end
+        else
+          r_type = check_type_expr_stmt(node.attr[0])
+          if r_type == nil
+            raise "[type error] wrong return type #{node.pos_s}"
+          elsif r_type != @function_return_type
+            raise "[type error] return type differs: #{r_type} #{node.pos_s}"
+          else
+            return true
+          end
+        end
+
+      when :compound_stmt
+        w1 = well_typed?(node.attr[:decls]) if node.attr[:decls]
+        w2 = well_typed?(node.attr[:stmts]) if node.attr[:stmts]
+        return w1 || w2
 
       end
     end
