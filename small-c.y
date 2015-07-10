@@ -78,7 +78,7 @@ rule
   statement_list_opt     : /* optional */
                          | statement_list
 
-  statement_list         : statement                            { result = val[0].is_a?(Array) ? [val[0].flatten] : [val[0]] }
+  statement_list         : statement                            { result = val[0].is_a?(Array) ? val[0] : [val[0]] }
                          | statement_list statement             { result.push val[1].is_a?(Array) ? val[1].flatten : val[1] }
 
   expression_opt         : /* optional */
