@@ -16,9 +16,9 @@ module SmallC
       p parser.to_s(tree)
       symbol = SmallC::SymbolAnalyze.new
       symbol.analyze(tree)
-      type_check = SmallC::TypeCheck.new
-      p type_check.well_typed?(tree)
       pp tree
+      type_check = SmallC::TypeCheck.new
+      type_check.well_typed?(tree)
       p parser.to_s(tree)
     rescue Racc::ParseError => e
       puts e.message
@@ -182,7 +182,7 @@ module SmallC
     attr_reader :ids
     def initialize(*env)
       if env[0]
-        @ids = env[0].ids
+        @ids = env[0].ids.clone
       else
         @ids = {}
       end
@@ -202,6 +202,7 @@ module SmallC
     def initialize
       @env = Env.new
       @level = 0
+      @env.add("print", Object.new(print, 0, :fun, [:fun, :void, :int]))
     end
 
     def analyze(list)
@@ -328,6 +329,8 @@ module SmallC
         else
           raise "[error] undefined #{name} #{node.pos_s}"
         end
+
+        analyze(node.attr[:args]) if node.attr[:args]
       
       # block level
       when :compound_stmt
@@ -396,20 +399,18 @@ module SmallC
   #
   class TypeCheck
     def well_typed?(list)
-      well = true
       list.each do |node|
-        well &= well_typed_node?(node)
+        well_typed_node?(node)
       end
-      return well
+      return true
     end
 
     def well_typed_node?(node)
       case node.type
       when :function_def
         @function_return_type = node.attr[:decl].attr[:name].type[1]
-        well_typed = well_typed_node?(node.attr[:stmts])
+        well_typed_node?(node.attr[:stmts])
         @function_return_type = nil
-        return well_typed
 
       when :skip
         return true
@@ -424,7 +425,7 @@ module SmallC
       when :if
         if check_type_expr_stmt(node.attr[:cond]) == :int \
           && well_typed_node?(node.attr[:stmt]) \
-          && well_typed_node?(node.attr[:else_stmt])
+          && (node.attr[:else_stmt] ? well_typed_node?(node.attr[:else_stmt]) : true)
           return true
         else
         raise "[type error] if condition type must be int #{node.pos_s}"
@@ -457,7 +458,7 @@ module SmallC
         end
 
       when :compound_stmt
-        w1 = well_typed?(node.attr[:decls]) if node.attr[:decls]
+        w1 = (node.attr[:decls]) ? well_typed?(node.attr[:decls]) : true
         w2 = well_typed?(node.attr[:stmts]) if node.attr[:stmts]
         return w1 || w2
 
@@ -474,9 +475,12 @@ module SmallC
     def check_type_expr_stmt(expr_stmt)
       last_type = nil
       expr_stmt.each do |expr|
-
-
+        last_type = check_type(expr)
+        if last_type == nil
+          raise "[type error] wrong expression type #{expr.pos_s}"
+        end
       end
+      return last_type
     end
 
     def check_type(expr)
@@ -484,7 +488,7 @@ module SmallC
       when :assign
         # object check
         unless expr.attr[0].type == :pointer \
-          || expr.attr[0].kind == :var && expr.attr[0].type[0] != :array
+          || expr.attr[0].attr[:name].kind == :var && expr.attr[0].type[0] != :array
           raise "[object error] invalid assign object #{expr.pos_s}"
         end
 
@@ -556,7 +560,7 @@ module SmallC
         function = expr.attr[:name]
         args = expr.attr[:args]
 
-        if args.length != function.type.length-2
+        if (args ? args.length : 0) != function.type.length-2
           raise "[error] wrong number of arguments #{expr.pos_s}"
         end
 

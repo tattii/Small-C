@@ -46,7 +46,7 @@ rule
   statement              : ';'                                  { result = Node.new(:skip) }
                          | expression ';'                       { result = Node.new(:expr, [val[0]], nil) } 
                          | compound_statement
-                         | IF '(' expression ')' statement      { result = Node.new(:if, {cond:val[2], stmt:val[4], else_stmt:[]}, val[0][:pos]) }
+                         | IF '(' expression ')' statement      { result = Node.new(:if, {cond:val[2], stmt:val[4], else_stmt:nil}, val[0][:pos]) }
                          | IF '(' expression ')' statement ELSE statement
                                                                 { result = Node.new(:if, {cond:val[2], stmt:val[4], else_stmt:val[6]}, val[0][:pos]) }
                          | WHILE '(' expression ')' statement   { result = Node.new(:while, {cond:val[2], stmt:val[4]}, val[0][:pos]) }
