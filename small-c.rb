@@ -19,7 +19,6 @@ module SmallC
       pp tree
       type_check = SmallC::TypeCheck.new
       type_check.well_typed?(tree)
-      p parser.to_s(tree)
     rescue Racc::ParseError => e
       puts e.message
     rescue RuntimeError => e
@@ -459,7 +458,7 @@ module SmallC
 
       when :compound_stmt
         w1 = (node.attr[:decls]) ? well_typed?(node.attr[:decls]) : true
-        w2 = well_typed?(node.attr[:stmts]) if node.attr[:stmts]
+        w2 = (node.attr[:stmts]) ? well_typed?(node.attr[:stmts]) : true
         return w1 || w2
 
       end
