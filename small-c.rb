@@ -437,7 +437,7 @@ module SmallC
           && (node.attr[:else_stmt] ? well_typed_node?(node.attr[:else_stmt]) : true)
           return true
         else
-        raise "[type error] if condition type must be int #{node.pos_s}"
+          raise "[type error] if condition type must be int #{node.pos_s}"
         end
 
       when :while
@@ -469,7 +469,6 @@ module SmallC
       when :compound_stmt
         w1 = (node.attr[:decls]) ? well_typed?(node.attr[:decls]) : true
         w2 = (node.attr[:stmts]) ? well_typed?(node.attr[:stmts]) : true
-        return w1 || w2
 
       end
     end
@@ -493,7 +492,6 @@ module SmallC
     end
 
     def check_type(expr)
-pp expr
       case expr.type
       when :assign
         # object check
