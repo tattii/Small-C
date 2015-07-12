@@ -493,6 +493,7 @@ module SmallC
     end
 
     def check_type(expr)
+pp expr
       case expr.type
       when :assign
         # object check
@@ -593,6 +594,12 @@ module SmallC
             return :int__
           else
             raise "[type error] invalid array type: #{type[1]} #{expr.pos_s}"
+          end
+        elsif type[0] == :pointer
+          if type[1] == :int
+            return :int_
+          else
+            raise "[type error] invalid *pointer type: #{type[1]} #{expr.pos_s}"
           end
         end
         return type
