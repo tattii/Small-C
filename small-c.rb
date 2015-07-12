@@ -11,15 +11,18 @@ module SmallC
   def self.compile(str)
     begin 
       parser = SmallC::Parse.new
-      tree = parser.parse(str)
-      pp tree
-      p to_s(tree)
+      ast = parser.parse(str)
+      pp ast
+      p to_s(ast)
       symbol = SmallC::SymbolAnalyze.new
-      symbol.analyze(tree)
-      pp tree
+      symbol.analyze(ast)
+      pp ast
       type_check = SmallC::TypeCheck.new
-      type_check.well_typed?(tree)
-      p to_s(tree)
+      type_check.well_typed?(ast)
+      p to_s(ast)
+
+      intermed_code = IntermedCode.new.convert(ast)
+      pp intermed_code
     rescue Racc::ParseError => e
       puts e.message
     rescue RuntimeError => e
@@ -610,6 +613,47 @@ module SmallC
       end
     end
 
+  end
+
+
+  class IntermedCode
+    def convert(ast)
+      if ast
+        codes = ast.map do |node|
+          convert_node(node, nil)
+        end
+        return codes
+      end 
+    end
+
+    def convert_node(node, dest)
+      case node.type
+      when :assign
+        x = node.attr[0]
+        e = node.attr[1]
+        
+        return convert_node(e, x) << [:letstmt, dest, x]
+
+
+
+      when :compound_stmt
+        decls = convert(node.attr[:decls])
+        stmts = convert(node.attr[:stmts])
+
+        return decls + stmts
+
+      when :function_def
+        var = node.attr[:decl].attr[:name]
+        params = convert(node.attr[:decl].attr[:params])
+        body = convert_node(node.attr[:stmts], dest)
+        return {type: :fundef,  var: var, parms: params, body: body}
+
+      end
+    end
+
+    def gen_decl
+
+    end
   end
 end
 
