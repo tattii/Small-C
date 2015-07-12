@@ -13,12 +13,13 @@ module SmallC
       parser = SmallC::Parse.new
       tree = parser.parse(str)
       pp tree
-      p parser.to_s(tree)
+      p to_s(tree)
       symbol = SmallC::SymbolAnalyze.new
       symbol.analyze(tree)
       pp tree
       type_check = SmallC::TypeCheck.new
       type_check.well_typed?(tree)
+      p to_s(tree)
     rescue Racc::ParseError => e
       puts e.message
     rescue RuntimeError => e
@@ -26,8 +27,8 @@ module SmallC
     end
   end
 
-  class Parse
-    def parse(str)
+  class Scan
+    def scan(str)
       @q = []
       @line = 1
       @last_newline_pos = 0
@@ -57,23 +58,8 @@ module SmallC
         @last_pos = s.pos
       end
       @q.push [false, '$end']
-      # pp @q
-      @yydebug = true
-      do_parse # racc parse
-    end
 
-    def next_token
-      @q.shift
-    end
-
-    def to_s(program)
-      if program
-        str = ""
-        program.each do |decl|
-          str += decl.to_s
-        end
-      end
-      return str
+      return @q
     end
 
     private
@@ -83,6 +69,30 @@ module SmallC
         pos: [@line, @last_pos - @last_newline_pos]
       }]
     end
+  end
+
+  class Parse
+    def parse(str)
+      scanner = Scan.new
+      @q = scanner.scan(str)
+      @yydebug = true
+      do_parse # racc parse
+    end
+
+    def next_token
+      @q.shift
+    end
+  end
+
+  # プログラム文字列化
+  def self.to_s(program)
+    if program
+      str = ""
+      program.each do |decl|
+        str += decl.to_s
+      end
+    end
+    return str
   end
 
 
