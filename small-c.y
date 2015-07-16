@@ -29,7 +29,7 @@ rule
   function_definition    : type_specifier function_declarator compound_statement
                                                                 { result = Node.new(:function_def, {type:val[0][:value], decl:val[1], stmts:val[2]}, val[0][:pos]) }
 
-  param_type_list_opt    : /* optional */
+  param_type_list_opt    : /* optional */                       { result = [] }
                          | param_type_list
 
   param_type_list        : param_declaration                     { result = [val[0]] }
@@ -81,7 +81,7 @@ rule
   statement_list         : statement                            { result = val[0].is_a?(Array) ? val[0] : [val[0]] }
                          | statement_list statement             { result.push val[1].is_a?(Array) ? val[1].flatten : val[1] }
 
-  expression_opt         : /* optional */
+  expression_opt         : /* optional */                       { result = [] }
                          | expression
 
   expression             : assign_expr                          { result = [val[0]] }
@@ -133,7 +133,7 @@ rule
                          | NUMBER                               { result = Node.new(:number, {value:val[0][:value]}, val[0][:pos]) }
                          | '(' expression ')'                   { result = Node.new(:expr, [val[1]], val[0][:pos]) }
 
-  argument_expr_list_opt : /* optional */
+  argument_expr_list_opt : /* optional */                       { result = [] }
                          | argument_expr_list
 
   argument_expr_list     : assign_expr                          { result = [val[0]] }

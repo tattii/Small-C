@@ -512,7 +512,7 @@ module SmallC
         end
 
       when :logical_op
-        if check_type(epxr.attr[1]) == :int && check_type(expr.attr[2]) == :int
+        if check_type(expr.attr[1]) == :int && check_type(expr.attr[2]) == :int
           return :int
         else
           raise "[type error] #{expr.attr[0]} operand type must be int #{expr.pos_s}"
@@ -696,7 +696,7 @@ module SmallC
 
     def convert_expr(node, dest)
       case node.type
-      when :assign # 代入先 var | pointer | array
+      when :assign
         if node.attr[0].type == :variable
           x = node.attr[0].attr[:name]
           e = node.attr[1]
@@ -704,14 +704,28 @@ module SmallC
             convert_expr(e, x),
             {type: :letstmt, var: dest, exp: x}
           ]
+
+        elsif node.attr[0].type == :pointer
+          address = node.attr[0]
+          exp = node.attr[1]
+          t1 = gen_decl()
+          t2 = gen_decl()
+          return [
+            convert_address(address, t1),
+            convert_expr(exp, t2),
+            {type: :writestmt, dest: t1, src: t2},
+            {type: :letstmt, var: dest, exp: t2}
+          ]
         end
 
-      when :op # pointer型
+      when :op
         op = node.attr[0]
         e1 = node.attr[1]
         e2 = node.attr[2]
         d1 = gen_decl()
         d2 = gen_decl()
+        d3 = gen_decl()
+
         return [
           convert_expr(e1, d1),
           convert_expr(e2, d2),
@@ -724,6 +738,7 @@ module SmallC
         e2 = node.attr[2]
         d1 = gen_decl()
         d2 = gen_decl()
+
         return [
           convert_expr(e1, d1),
           convert_expr(e2, d2),
@@ -736,7 +751,40 @@ module SmallC
         e2 = node.attr[2]
         d1 = gen_decl()
         d2 = gen_decl()
+        res = gen_decl()
 
+        if op == "&&"
+          return [
+            convert_expr(e1, d1),
+            {type: :ifstmt, var: d1, 
+              stmt1: {type: :compdstmt, decls: [], 
+                  stmts: [
+                  convert_expr(e2, d2),
+                  {type: :ifstmt, var: d2,
+                    stmt1: {type: :letstmt, var: dest, exp: {type: :intexp, num: 1}},
+                    stmt2: {type: :letstmt, var: dest, exp: {type: :intexp, num: 0}},
+                  }
+                ].flatten
+              },
+              stmt2: {type: :letstmt, var: dest, exp: {type: :intexp, num: 0}}
+            }
+          ]
+        elsif op == "||"
+          return [
+            convert_expr(e1, d1),
+            {type: :ifstmt, var: d1, 
+              stmt1: {type: :letstmt, var: dest, exp: {type: :intexp, num: 1}},
+              stmt2: {type: :compdstmt, decls: [], 
+                  stmts: [
+                  convert_expr(e2, d2),
+                  {type: :ifstmt, var: d2,
+                    stmt1: {type: :letstmt, var: dest, exp: {type: :intexp, num: 1}},
+                    stmt2: {type: :letstmt, var: dest, exp: {type: :intexp, num: 0}},
+                  }
+                ].flatten
+            }}
+          ]
+        end
 
       when :address
         t = gen_decl()
@@ -778,9 +826,35 @@ module SmallC
         return {type: :letstmt, var: dest, exp: exp}
 
       when :number
-        exp = {type: :intstmt, num: node.attr[:value]}
+        exp = {type: :intexp, num: node.attr[:value]}
         return {type: :letstmt, var: dest, exp: exp}
 
+      end
+    end
+
+    def convert_address(pointer, dest)
+      if pointer.attr[0].type == :op
+        node = pointer.attr[0]
+        op = node.attr[0]
+        e1 = node.attr[1]
+        e2 = node.attr[2]
+        d1 = gen_decl()
+        d2 = gen_decl()
+        d3 = gen_decl()
+
+        if (op == '+' || op == '-') && 
+          e1.type == :variable &&
+          (e1.attr[:name].type[0] == :array || e1.attr[:name].type[0] == :pointer)
+          addr = {type: :addrexp, exp: {type: :varexp, var: e1.attr[:name].name}}
+          return [
+            {type: :letstmt, var: d1, exp: addr},
+            convert_expr(e2.attr[0][0], d2),
+            {type: :letstmt, var: d3, exp:
+                {type: :aopexp, op: '*', var1: d2, var2: {type: :intexp, num: 4}}},
+            {type: :letstmt, var: dest, exp: 
+              {type: :aopexp, op: op, var1: d1, var2: d3}}
+          ]
+        end
       end
     end
 
