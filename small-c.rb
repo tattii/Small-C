@@ -617,17 +617,16 @@ module SmallC
 
 
   class IntermedCode
-    def convert(ast)
-      if ast
-        codes = []
-        ast.each do |node|
-          codes << convert_node(node, nil)
-        end
-        return codes.flatten
-      end 
+    def convert(prog)
+      @temp = 0
+      codes = []
+      prog.each do |node|
+        codes << convert_prog(node)
+      end
+      return codes.flatten
     end
 
-    def convert_node(node, dest)
+    def convert_prog(node)
       case node.type
       when :decl
         return node.attr[:decls].map do |decl|
@@ -636,39 +635,73 @@ module SmallC
 
       when :function_def
         var = node.attr[:decl].attr[:name]
-        params = convert(node.attr[:decl].attr[:params])
-        body = convert_node(node.attr[:stmts], dest)
+        params = node.attr[:decl].attr[:params].map do |param| 
+          {type: :vardecl, var: param.attr[:name]}
+        end
+        body = convert_stmt(node.attr[:stmts])
         return {type: :fundef,  var: var, parms: params, body: body}
+      end
+    end
 
-
+    def convert_stmt(node)
+      case node.type
       when :compound_stmt
-        decls = convert(node.attr[:decls])
-        stmts = convert(node.attr[:stmts])
-        return {type: :compdstmt, decls: decls, stmts: stmts}
+        decls = node.attr[:decls].map do |decl|
+          {type: :vardecl, var: decl}
+        end
+        stmts = node.attr[:stmts].map do |stmt|
+          convert_stmt(stmt)
+        end
+        return {type: :compdstmt, decls: decls, stmts: stmts.flatten}
 
-      when :expr
-        return convert(node.attr[0])
 
       when :skip
         return {type: :emptystmt}
 
+      when :expr
+        var = gen_decl()
+        return [
+          node.attr[0].map {|expr| convert_expr(expr, var)},
+        ]
+
       when :if
-        var = conver(node.attr[:cond])
-        return {type: :ifstmt, var: var, stmt1: node.attr[:stmt], stmt2: node.attr[:else_stmt]}
+        var = gen_decl()
+        stmt1 = convert_stmt(node.attr[:stmt])
+        stmt2 = convert_stmt(node.attr[:else_stmt]) if node.attr[:else_stmt]
+        return [
+          node.attr[:cond].map {|expr| convert_expr(expr, var)},
+          {type: :ifstmt, var: var, stmt1: stmt1, stmt2: stmt2}
+        ]
 
       when :while
-        var = conver(node.attr[:cond])
-        return {type: :whilestmt, var: var, stmt: node.attr[:stmt]}
+        var = gen_decl()
+        stmt = convert_stmt(node.attr[:stmt])
+        return [
+          node.attr[:cond].map {|expr| convert_expr(expr, var)},
+          {type: :whilestmt, var: var, stmt: stmt}
+        ]
 
       when :return
-        var = conver(node.attr[:cond])
-        return {type: :returnstmt, var: var}
+        var = gen_decl()
+        return [
+          node.attr[:cond].map {|expr| convert_expr(expr, var)},
+          {type: :returnstmt, var: var}
+        ]
 
+      end
+    end
 
+    def convert_expr(node, dest)
+      case node.type
       when :assign # 代入先 var | pointer | array
-        x = node.attr[0].attr[:name]
-        e = node.attr[1]
-        return [convert_node(e, x), {type: :letstmt, var: dest, exp: x}].flatten
+        if node.attr[0].type == :variable
+          x = node.attr[0].attr[:name]
+          e = node.attr[1]
+          return [
+            convert_expr(e, x),
+            {type: :letstmt, var: dest, exp: x}
+          ]
+        end
 
       when :op # pointer型
         op = node.attr[0]
@@ -676,12 +709,11 @@ module SmallC
         e2 = node.attr[2]
         d1 = gen_decl()
         d2 = gen_decl()
-
         return [
-          convert_node(e1, d1),
-          convert_node(e2, d2),
+          convert_expr(e1, d1),
+          convert_expr(e2, d2),
           {type: :letstmt, var: dest, exp: {type: :aopexp, op: op, var1: d1, var2: d2}}
-        ].flatten
+        ]
 
       when :eq_op, :rel_op
         op = node.attr[0]
@@ -689,33 +721,58 @@ module SmallC
         e2 = node.attr[2]
         d1 = gen_decl()
         d2 = gen_decl()
-
         return [
-          convert_node(e1, d1),
-          convert_node(e2, d2),
+          convert_expr(e1, d1),
+          convert_expr(e2, d2),
           {type: :letstmt, var: dest, exp: {type: :relopexp, op: op, var1: d1, var2: d2}}
-        ].flatten
-
+        ]
 
       when :logical_op
-
+        op = node.attr[0]
+        e1 = node.attr[1]
+        e2 = node.attr[2]
+        d1 = gen_decl()
+        d2 = gen_decl()
 
 
       when :address
-        return {type: :addrexp, var: node.attr[0]}
+        t = gen_decl()
+        return [
+          convert_expr(node.attr[0], t),
+          {type: :letstmt, var: dest, exp: {type: :addrexp, var: t}}
+        ]
 
       when :pointer
-        return {type: :readstmt, dest: dest, src: node.attr[0]}
+        t = gen_decl()
+        return [
+          convert_expr(node.attr[0], t),
+          {type: :readstmt, dest: dest, src: t}
+        ]
 
-      when :call # 引数処理
+      when :call
         if node.attr[:name].name == "print"
-          return {type: :printstmt, var: node.attr[:args][0]}
+          t = gen_decl()
+          return [
+            convert_expr(node.attr[0], t),
+            {type: :printstmt, var: t}
+          ]
         else
-          return {type: :callstmt, dest: dest, f: node.attr[:name], vars: node.attr[:args]}
+          args = []
+          codes = []
+          node.attr[:args].each do |arg|
+            t = gen_decl()
+            args.push t
+            codes.push convert_expr(arg, t)
+          end
+          return [
+            codes,
+            {type: :callstmt, dest: dest, f: node.attr[:name], vars: args}
+          ]
         end
 
       when :variable
-        return [{type: :varexp, var: node.attr[:name]}]
+        exp = {type: :varexp, var: node.attr[:name]}
+        return {type: :letstmt, var: dest, exp: exp}
 
       when :number
         exp = {type: :intstmt, num: node.attr[:value]}
@@ -725,7 +782,9 @@ module SmallC
     end
 
     def gen_decl
-      return Object.new("t0", -1, :var, :temp)
+      t = Object.new("_t" + @temp.to_s, -1, :var, :temp)
+      @temp += 1
+      return t
     end
   end
 end

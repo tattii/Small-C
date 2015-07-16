@@ -69,13 +69,13 @@ rule
   compound_statement     : '{' declaration_list_opt statement_list_opt '}'
                                                                 { result = Node.new(:compound_stmt, {decls:val[1], stmts:val[2]}, val[0][:pos]) }
 
-  declaration_list_opt   : /* optional */
+  declaration_list_opt   : /* optional */                       { result = [] }
                          | declaration_list
 
   declaration_list       : declaration                          { result = [val[0]] }
                          | declaration_list declaration         { result.push val[1] }
 
-  statement_list_opt     : /* optional */
+  statement_list_opt     : /* optional */                       { result = [] }
                          | statement_list
 
   statement_list         : statement                            { result = val[0].is_a?(Array) ? val[0] : [val[0]] }
