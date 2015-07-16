@@ -618,7 +618,8 @@ module SmallC
 
   class IntermedCode
     def convert(prog)
-      @temp = 0
+      @temp_num = 0
+      @temp_decls = []
       codes = []
       prog.each do |node|
         codes << convert_prog(node)
@@ -649,10 +650,12 @@ module SmallC
         decls = node.attr[:decls].map do |decl|
           {type: :vardecl, var: decl}
         end
+        @temp_decls.push []
         stmts = node.attr[:stmts].map do |stmt|
           convert_stmt(stmt)
         end
-        return {type: :compdstmt, decls: decls, stmts: stmts.flatten}
+        temp = @temp_decls.pop
+        return {type: :compdstmt, decls: decls + temp, stmts: stmts.flatten}
 
 
       when :skip
@@ -782,8 +785,10 @@ module SmallC
     end
 
     def gen_decl
-      t = Object.new("_t" + @temp.to_s, -1, :var, :temp)
-      @temp += 1
+      temp_name = "_t" + @temp_num.to_s
+      t = Object.new(temp_name, -1, :var, :temp)
+      @temp_decls.last.push({type: :vardecl, var: t})
+      @temp_num += 1
       return t
     end
   end
