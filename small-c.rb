@@ -619,28 +619,20 @@ module SmallC
   class IntermedCode
     def convert(ast)
       if ast
-        codes = ast.map do |node|
-          convert_node(node, nil)
+        codes = []
+        ast.each do |node|
+          codes << convert_node(node, nil)
         end
-        return codes
+        return codes.flatten
       end 
     end
 
     def convert_node(node, dest)
       case node.type
-      when :assign
-        x = node.attr[0]
-        e = node.attr[1]
-        
-        return convert_node(e, x) << [:letstmt, dest, x]
-
-
-
-      when :compound_stmt
-        decls = convert(node.attr[:decls])
-        stmts = convert(node.attr[:stmts])
-
-        return decls + stmts
+      when :decl
+        return node.attr[:decls].map do |decl|
+          {type: :vardecl, var: decl}
+        end
 
       when :function_def
         var = node.attr[:decl].attr[:name]
@@ -648,11 +640,92 @@ module SmallC
         body = convert_node(node.attr[:stmts], dest)
         return {type: :fundef,  var: var, parms: params, body: body}
 
+
+      when :compound_stmt
+        decls = convert(node.attr[:decls])
+        stmts = convert(node.attr[:stmts])
+        return {type: :compdstmt, decls: decls, stmts: stmts}
+
+      when :expr
+        return convert(node.attr[0])
+
+      when :skip
+        return {type: :emptystmt}
+
+      when :if
+        var = conver(node.attr[:cond])
+        return {type: :ifstmt, var: var, stmt1: node.attr[:stmt], stmt2: node.attr[:else_stmt]}
+
+      when :while
+        var = conver(node.attr[:cond])
+        return {type: :whilestmt, var: var, stmt: node.attr[:stmt]}
+
+      when :return
+        var = conver(node.attr[:cond])
+        return {type: :returnstmt, var: var}
+
+
+      when :assign # 代入先 var | pointer | array
+        x = node.attr[0].attr[:name]
+        e = node.attr[1]
+        return [convert_node(e, x), {type: :letstmt, var: dest, exp: x}].flatten
+
+      when :op # pointer型
+        op = node.attr[0]
+        e1 = node.attr[1]
+        e2 = node.attr[2]
+        d1 = gen_decl()
+        d2 = gen_decl()
+
+        return [
+          convert_node(e1, d1),
+          convert_node(e2, d2),
+          {type: :letstmt, var: dest, exp: {type: :aopexp, op: op, var1: d1, var2: d2}}
+        ].flatten
+
+      when :eq_op, :rel_op
+        op = node.attr[0]
+        e1 = node.attr[1]
+        e2 = node.attr[2]
+        d1 = gen_decl()
+        d2 = gen_decl()
+
+        return [
+          convert_node(e1, d1),
+          convert_node(e2, d2),
+          {type: :letstmt, var: dest, exp: {type: :relopexp, op: op, var1: d1, var2: d2}}
+        ].flatten
+
+
+      when :logical_op
+
+
+
+      when :address
+        return {type: :addrexp, var: node.attr[0]}
+
+      when :pointer
+        return {type: :readstmt, dest: dest, src: node.attr[0]}
+
+      when :call # 引数処理
+        if node.attr[:name].name == "print"
+          return {type: :printstmt, var: node.attr[:args][0]}
+        else
+          return {type: :callstmt, dest: dest, f: node.attr[:name], vars: node.attr[:args]}
+        end
+
+      when :variable
+        return [{type: :varexp, var: node.attr[:name]}]
+
+      when :number
+        exp = {type: :intstmt, num: node.attr[:value]}
+        return {type: :letstmt, var: dest, exp: exp}
+
       end
     end
 
     def gen_decl
-
+      return Object.new("t0", -1, :var, :temp)
     end
   end
 end
