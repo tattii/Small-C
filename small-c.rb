@@ -22,6 +22,8 @@ module SmallC
       p to_s(ast)
 
       intermed_code = IntermedCode.new.convert(ast)
+
+      AssignAddr.new.assign(intermed_code)
       pp intermed_code
     rescue Racc::ParseError => e
       puts e.message
@@ -176,7 +178,7 @@ module SmallC
   end
 
   class Object
-    attr_accessor :name, :lev, :kind, :type
+    attr_accessor :name, :lev, :kind, :type, :offset
     def initialize(name, lev, kind, type)
       @name = name
       @lev = lev
@@ -648,14 +650,16 @@ module SmallC
       case node.type
       when :compound_stmt
         decls = node.attr[:decls].map do |decl|
-          {type: :vardecl, var: decl}
+          decl.attr[:decls].map do |d|
+            {type: :vardecl, var: d}
+          end
         end
         @temp_decls.push []
         stmts = node.attr[:stmts].map do |stmt|
           convert_stmt(stmt)
         end
         temp = @temp_decls.pop
-        return {type: :compdstmt, decls: decls + temp, stmts: stmts.flatten}
+        return {type: :compdstmt, decls: decls.flatten + temp, stmts: stmts.flatten}
 
 
       when :skip
@@ -850,7 +854,7 @@ module SmallC
             {type: :letstmt, var: d1, exp: addr},
             convert_expr(e2.attr[0][0], d2),
             {type: :letstmt, var: d3, exp:
-                {type: :aopexp, op: '*', var1: d2, var2: {type: :intexp, num: 4}}},
+              {type: :aopexp, op: '*', var1: d2, var2: {type: :intexp, num: 4}}},
             {type: :letstmt, var: dest, exp: 
               {type: :aopexp, op: op, var1: d1, var2: d3}}
           ]
@@ -866,6 +870,57 @@ module SmallC
       return t
     end
   end
+
+
+
+  class AssignAddr
+    def assign(intermed_code)
+      intermed_code.each do |code|
+        if code[:type] == :fundef
+          assign_fundef(code)
+        end
+      end
+    end
+
+    def assign_fundef(fundef)
+      parm_offset = 0
+      @offset = 4
+      fundef[:parms].each do |parm|
+        parm_offset += 4
+        parm[:var].offset = parm_offset
+      end
+      assign_compdstmt(fundef[:body])
+    end
+
+    def assign_compdstmt(compd)
+      compd[:decls].each do |decl|
+        if decl[:var].type[0] == :array
+          @offset += -4 * decl[:var].type[2]
+          decl[:var].offset = @offset
+
+        else
+          @offset += -4
+          decl[:var].offset = @offset
+        end
+      end
+
+      compd[:stmts].each do |stmt|
+        case stmt[:type]
+        when :compdstmt
+          assign_compdstmt(stmt)
+
+        when :ifstmt
+          assign_compdstmt(stmt[:stmt1]) if stmt[:stmt1] && stmt[:stmt1][:type] == :compdstmt
+          assign_compdstmt(stmt[:stmt2]) if stmt[:stmt2] && stmt[:stmt2][:type] == :compdstmt
+
+        when :whilestmt
+          assign_compdstmt(stmt[:stmt]) if stmt[:stmt] && stmt[:stmt][:type] == :compdstmt
+
+        end
+      end
+    end
+  end
+
 end
 
 
@@ -884,7 +939,7 @@ else
     puts
     print '? '
     str = gets.chop!
-    break if /q/i =~ str
+    break if /^q$/i =~ str
     SmallC::compile(str)
   end
 end
