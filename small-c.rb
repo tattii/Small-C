@@ -27,6 +27,8 @@ module SmallC
 
       code = CodeGenerate.new.convert(intermed_code)
       pp code
+
+      print PrintCode.instrs_string(code)
     rescue Racc::ParseError => e
       puts e.message
     rescue RuntimeError => e
@@ -222,7 +224,7 @@ module SmallC
     def initialize
       @env = Env.new
       @level = 0
-      @env.add("print", Object.new(print, 0, :fun, [:fun, :void, :int]))
+      @env.add("print", Object.new("print", 0, :fun, [:fun, :void, :int]))
     end
 
     def analyze(list)
@@ -697,7 +699,7 @@ module SmallC
       when :return
         var = gen_decl()
         return [
-          node.attr[:cond].map {|expr| convert_expr(expr, var)},
+          node.attr[0].map {|expr| convert_expr(expr, var)},
           {type: :returnstmt, var: var}
         ]
 
@@ -724,7 +726,7 @@ module SmallC
             convert_address(address, t1),
             convert_expr(exp, t2),
             {type: :writestmt, dest: t1, src: t2},
-            {type: :letstmt, var: dest, exp: t2}
+            {type: :letstmt, var: dest, exp: {type: :varexp, var:t2}}
           ]
         end
 
@@ -814,7 +816,7 @@ module SmallC
         if node.attr[:name].name == "print"
           t = gen_decl()
           return [
-            convert_expr(node.attr[0], t),
+            convert_expr(node.attr[:args][0], t),
             {type: :printstmt, var: t}
           ]
         else
@@ -851,18 +853,20 @@ module SmallC
         d1 = gen_decl()
         d2 = gen_decl()
         d3 = gen_decl()
+        d4 = gen_decl()
 
         if (op == '+' || op == '-') && 
           e1.type == :variable &&
           (e1.attr[:name].type[0] == :array || e1.attr[:name].type[0] == :pointer)
-          addr = {type: :addrexp, exp: {type: :varexp, var: e1.attr[:name].name}}
+          addr = {type: :addrexp, var: e1.attr[:name]}
           return [
             {type: :letstmt, var: d1, exp: addr},
             convert_expr(e2.attr[0][0], d2),
-            {type: :letstmt, var: d3, exp:
-              {type: :aopexp, op: '*', var1: d2, var2: {type: :intexp, num: 4}}},
+            {type: :letstmt, var: d3, exp: {type: :intexp, num: 4}},
+            {type: :letstmt, var: d4, exp: 
+              {type: :aopexp, op: '*', var1: d2, var2: d3}},
             {type: :letstmt, var: dest, exp: 
-              {type: :aopexp, op: op, var1: d1, var2: d3}}
+              {type: :aopexp, op: op, var1: d1, var2: d4}}
           ]
         end
       end
@@ -937,7 +941,6 @@ module SmallC
     Reg1   = '$t0'
     Reg2   = '$t1'
     Retreg = '$v0'
-    Fpreg  = '$fp'
 
     def initialize
       @labels = 0
@@ -968,8 +971,8 @@ module SmallC
       end
       
       return [
-        Dir.new(".text", nil),
-        Dir.new(".global", ["main"]),
+        Dir.new(".text", []),
+        Dir.new(".globl", ["main"]),
         fundefs_code,
         convert_fundef(main),
       ].flatten
@@ -1156,7 +1159,7 @@ module SmallC
         dest_addr = dest.to_addr
 
         return [
-          Instr.new('li', [Reg1, var_addr]),
+          Instr.new('lw', [Reg1, var_addr]),
           Instr.new('sw', [Reg1, dest_addr])
         ]
       end
@@ -1191,6 +1194,24 @@ module SmallC
         Instr.new('addiu', ['$sp', '$sp', framesize]),
         Instr.new('jr', ['$ra'])
       ]
+    end
+  end
+
+
+  class PrintCode
+    def self.instrs_string(instrs)
+      codes = instrs.map do |instr|
+        case instr.class.to_s.split("::").last
+        when "Instr"
+          "\t#{instr.op} #{instr.args.join(",")}"
+        when "Label"
+          "#{instr.name}:"
+        when "Dir"
+          "\t#{instr.label} #{instr.args.join(",")}"
+        end
+      end
+
+      return codes.join("\n")
     end
   end
 
