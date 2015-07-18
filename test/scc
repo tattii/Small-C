@@ -129,7 +129,8 @@
 
 ;; =========== end of mips-util.rkt ====================
 
-(define spim-command "/home/lab4/umatani/local/bin/spim -file ~a")
+;(define spim-command "/home/lab4/umatani/local/bin/spim -file ~a")
+(define spim-command "spim -file ~a")
 
 (define racket-compiler-module "compiler")
 (define racket-compiler-function 'compile)

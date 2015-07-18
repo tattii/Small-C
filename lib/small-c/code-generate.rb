@@ -1,5 +1,5 @@
 #
-# Small-C CodeGenerate - コード生成
+# Small-C CodeGenerate - アセンブリ生成
 #
 
 module SmallC
@@ -44,6 +44,10 @@ module SmallC
         Dir.new(".globl", ["main"]),
         fundefs_code,
         convert_fundef(main),
+        Instr.new('jal', ['$ra']),
+        Dir.new(".data", []),
+        Label.new("newline"),
+        Dir.new(".ascii", ['"\n"'])
       ].flatten
     end
 
@@ -140,6 +144,9 @@ module SmallC
           Instr.new('li', ['$v0', 1]),
           Instr.new('lw', [Reg1, src_addr]),
           Instr.new('move', ['$a0', Reg1]),
+          Instr.new('syscall', []),
+          Instr.new('li', ['$v0', 4]),
+          Instr.new('la', ['$a0', 'newline']),
           Instr.new('syscall', [])
         ]
 

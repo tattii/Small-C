@@ -2,7 +2,11 @@
 
 require_relative "lib/small-c.rb"
 
-if ARGV[0]
+if ARGV[0] == "-d" and ARGV[1]
+  str = File.open(ARGV[1]).read
+  SmallC::compile_debug(str)
+
+elsif ARGV[0]
   str = File.open(ARGV[0]).read
   SmallC::compile(str)
 end

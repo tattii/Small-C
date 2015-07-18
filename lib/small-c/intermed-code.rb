@@ -88,13 +88,24 @@ module SmallC
 
     def convert_expr(node, dest)
       case node.type
+      when :expr
+        t = nil
+        code = node.attr[0].map do |expr|
+          t = gen_decl()
+          convert_expr(expr, t)
+        end
+        code.push({type: :letstmt, var: dest, exp: {type: :varexp, var: t}}) if t
+        return code.flatten
+
       when :assign
         if node.attr[0].type == :variable
           x = node.attr[0].attr[:name]
           e = node.attr[1]
+          t = gen_decl()
           return [
-            convert_expr(e, x),
-            {type: :letstmt, var: dest, exp: x}
+            convert_expr(e, t),
+            {type: :letstmt, var: x, exp: {type: :varexp, var: t}},
+            {type: :letstmt, var: dest, exp: {type: :varexp, var: t}}
           ]
 
         elsif node.attr[0].type == :pointer

@@ -29,11 +29,14 @@ module SmallC
 
       code = CodeGenerate.new.convert(intermed_code)
       print CodeGenerate.print_code(code)
+      exit 0
 
     rescue Racc::ParseError => e
       STDERR.puts e.message
+      exit 1
     rescue RuntimeError => e
       STDERR.puts e.message
+      exit 1
     end
   end
 
