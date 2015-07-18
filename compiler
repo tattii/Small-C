@@ -1,0 +1,8 @@
+#! /usr/bin/env ruby
+
+require_relative "lib/small-c.rb"
+
+if ARGV[0]
+  str = File.open(ARGV[0]).read
+  SmallC::compile(str)
+end
