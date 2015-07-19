@@ -32,6 +32,9 @@ module SmallC
         end
         body = convert_stmt(node.attr[:stmts])
         return {type: :fundef,  var: var, parms: params, body: body}
+
+      when :function_proto
+        return []
       end
     end
 
