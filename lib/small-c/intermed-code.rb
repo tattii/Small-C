@@ -58,7 +58,7 @@ module SmallC
         var = gen_decl()
         return [
           node.attr[0].map {|expr| convert_expr(expr, var)},
-        ]
+        ].flatten
 
       when :if
         var = gen_decl()
@@ -67,7 +67,7 @@ module SmallC
         return [
           node.attr[:cond].map {|expr| convert_expr(expr, var)},
           {type: :ifstmt, var: var, stmt1: stmt1, stmt2: stmt2}
-        ]
+        ].flatten
 
       when :while
         var = gen_decl()
@@ -75,14 +75,14 @@ module SmallC
         return [
           node.attr[:cond].map {|expr| convert_expr(expr, var)},
           {type: :whilestmt, var: var, stmt: stmt}
-        ]
+        ].flatten
 
       when :return
         var = gen_decl()
         return [
           node.attr[0].map {|expr| convert_expr(expr, var)},
           {type: :returnstmt, var: var}
-        ]
+        ].flatten
 
       end
     end

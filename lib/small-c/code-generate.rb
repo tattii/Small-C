@@ -65,6 +65,10 @@ module SmallC
 
     # localvarsize, argsize => return
     def convert_stmt(intmd, localvarsize, argsize)
+      if intmd.is_a?(Array)
+        return intmd.map {|i| convert_stmt(i, localvarsize, argsize)}
+      end
+
       case intmd[:type]
       when :compdstmt
         code = intmd[:stmts].map {|stmt| convert_stmt(stmt, localvarsize, argsize) }

@@ -40,16 +40,20 @@ module SmallC
         when :compdstmt
           assign_compdstmt(stmt)
 
-        when :ifstmt
-          assign_compdstmt(stmt[:stmt1]) if stmt[:stmt1] && stmt[:stmt1][:type] == :compdstmt
-          assign_compdstmt(stmt[:stmt2]) if stmt[:stmt2] && stmt[:stmt2][:type] == :compdstmt
+        when :ifstmt 
+          assign_compdstmt(stmt[:stmt1]) if compdstmt?(stmt[:stmt1])
+          assign_compdstmt(stmt[:stmt2]) if compdstmt?(stmt[:stmt2])
 
         when :whilestmt
-          assign_compdstmt(stmt[:stmt]) if stmt[:stmt] && stmt[:stmt][:type] == :compdstmt
+          assign_compdstmt(stmt[:stmt]) if compdstmt?(stmt[:stmt])
 
         end
       end
 
+    end
+    
+    def compdstmt?(stmt)
+      stmt.is_a?(Hash) && stmt[:type] == :compdstmt
     end
   end
 end
