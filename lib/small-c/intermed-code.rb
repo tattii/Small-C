@@ -105,11 +105,13 @@ module SmallC
         if node.attr[0].type == :variable
           x = node.attr[0].attr[:name]
           e = node.attr[1]
-          t = gen_decl()
+          t1 = gen_decl()
+          t2 = gen_decl()
           return [
-            convert_expr(e, t),
-            {type: :letstmt, var: x, exp: {type: :varexp, var: t}},
-            {type: :letstmt, var: dest, exp: {type: :varexp, var: t}}
+            convert_expr(e, t1),
+            {type: :letstmt, var: t2, exp: {type: :addrexp, var: x}},
+            {type: :writestmt, dest: t2, src: t1},
+            {type: :letstmt, var: dest, exp: {type: :varexp, var: t1}}
           ]
 
         elsif node.attr[0].type == :pointer

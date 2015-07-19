@@ -19,27 +19,19 @@ module SmallC
       # 整理
       global_vars = []
       fundefs = []
-      main = nil
 
       intermed_code.each do |intmd|
         if intmd[:type] == :vardecl
           global_vars.push intmd
         elsif intmd[:type] == :fundef
-          if intmd[:var].name == "main"
-            main = intmd
-          else
-            fundefs.push intmd
-          end
+          fundefs.push intmd
         end
       end
-
-      fundefs_code = fundefs.map {|fundef| convert_fundef(fundef)}.flatten
 
       return [
         Dir.new(".text", []),
         Dir.new(".globl", ["main"]),
-        fundefs_code,
-        convert_fundef(main),
+        fundefs.map {|fundef| convert_fundef(fundef)}.flatten,
         Dir.new(".data", []),
         Label.new("newline"),
         Dir.new(".ascii", ['"\n"']),
@@ -178,23 +170,36 @@ module SmallC
     def convert_expr(intmd, dest)
       case intmd[:type]
       when :varexp
+        dest_addr = dest.to_addr
+
         # global variable
         if intmd[:var].lev == 0
-          dest_addr = dest.to_addr
-          return [
-            Instr.new('la', [Reg1, intmd[:var].name]),
-            Instr.new('lw', [Reg2, "0(#{Reg1})"]),
-            Instr.new('sw', [Reg2, dest_addr])
-          ]
+          if intmd[:var].type[0] == :array
+            return [
+              Instr.new('la', [Reg1, intmd[:var].name]),
+              Instr.new('sw', [Reg1, dest_addr])
+            ]
+          else
+            return [
+              Instr.new('la', [Reg1, intmd[:var].name]),
+              Instr.new('lw', [Reg2, "0(#{Reg1})"]),
+              Instr.new('sw', [Reg2, dest_addr])
+            ]
+          end
 
         # local variable
         else
-          src_addr = intmd[:var].to_addr
-          dest_addr = dest.to_addr
-          return [
-            Instr.new('lw', [Reg1, src_addr]),
-            Instr.new('sw', [Reg1, dest_addr])
-          ]
+          if intmd[:var].type[0] == :array
+            return [
+              Instr.new('addi', [Reg1, '$fp', intmd[:var].offset]),
+              Instr.new('sw', [Reg1, dest_addr])
+            ]
+          else
+            return [
+              Instr.new('lw', [Reg1, intmd[:var].to_addr]),
+              Instr.new('sw', [Reg1, dest_addr])
+            ]
+          end
         end
 
       when :intexp
@@ -244,12 +249,36 @@ module SmallC
         ]
 
       when :addrexp
-        var_offset = intmd[:var].offset
         dest_addr = dest.to_addr
-        return [
-          Instr.new('addi', [Reg1, '$fp', var_offset]),
-          Instr.new('sw', [Reg1, dest_addr])
-        ]
+        # global
+        if intmd[:var].lev == 0
+          if intmd[:var].type[0] == :pointer
+            return [
+              Instr.new('la', [Reg1, intmd[:var].name]),
+              Instr.new('lw', [Reg2, "0(#{Reg1})"]),
+              Instr.new('sw', [Reg2, dest_addr])
+            ]
+          else
+            return [
+              Instr.new('la', [Reg1, intmd[:var].name]),
+              Instr.new('sw', [Reg1, dest_addr])
+            ]
+          end
+
+        # local
+        else
+          if intmd[:var].type[0] == :pointer
+            return [
+              Instr.new('lw', [Reg1, intmd[:var].to_addr]),
+              Instr.new('sw', [Reg1, dest_addr])
+            ]
+          else
+            return [
+              Instr.new('addi', [Reg1, '$fp', intmd[:var].offset]),
+              Instr.new('sw', [Reg1, dest_addr])
+            ]
+          end
+        end
       end
     end
 

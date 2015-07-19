@@ -65,8 +65,8 @@ module SmallC
         end
 
         if defined = @env.lookup(name)
-          if defined.kind == :param
-            raise "[error] already defined #{name} #{node.pos_s}"
+          if defined.kind == :parm
+            raise "[error] already defined param: #{name} #{node.pos_s}"
           end
         end
 
@@ -76,7 +76,9 @@ module SmallC
         node.attr[:name] = obj
 
       when :function_proto
+        env_stash = Env.new(@env) # for params
         type, name = analyze_function_decl(node)
+        @env = env_stash
 
         if defined = @env.lookup(name)
           if defined.kind == :fun || defined.kind == :proto
@@ -88,12 +90,13 @@ module SmallC
           end
         else
           # declare
-          obj = Object.new(name, @level, :proto, type)
+          obj = Object.new(name, 0, :proto, type)
           @env.add(name, obj)
           node.attr[:decl].attr[:name] = obj
         end
 
       when :function_def
+        env_stash = Env.new(@env) # for params
         type, name = analyze_function_decl(node)
 
         if defined = @env.lookup(name)
@@ -103,11 +106,13 @@ module SmallC
         end
 
         # declare
-        obj = Object.new(name, @level, :fun, type)
+        obj = Object.new(name, 0, :fun, type)
         @env.add(name, obj)
         node.attr[:decl].attr[:name] = obj
 
         analyze_node(node.attr[:stmts])
+        @env = env_stash
+        @env.add(name, obj)
 
       when :variable
         name = node.attr[:name]

@@ -175,7 +175,7 @@ module SmallC
         if args
           args.each_with_index do |arg, i|
             arg_type = check_type(arg)
-            unless arg_type && arg_type == function.type[i+2]
+            unless arg_type && arg_type == to_type(function.type[i+2])
               raise "[type error] argument type diffes: #{arg_type} #{expr.pos_s}"
             end
           end
@@ -184,23 +184,7 @@ module SmallC
         return function.type[1]
 
       when :variable
-        type = expr.attr[:name].type
-        if type[0] == :array
-          if type[1] == :int
-            return :int_
-          elsif type[1] == :int_
-            return :int__
-          else
-            raise "[type error] invalid array type: #{type[1]} #{expr.pos_s}"
-          end
-        elsif type[0] == :pointer
-          if type[1] == :int
-            return :int_
-          else
-            raise "[type error] invalid *pointer type: #{type[1]} #{expr.pos_s}"
-          end
-        end
-        return type
+        return to_type(expr.attr[:name].type)
 
       when :number
         return :int
@@ -209,6 +193,24 @@ module SmallC
         return check_type_expr_stmt(expr.attr[0])
       end
     end
-  end
 
+    def to_type(type)
+      if type[0] == :array
+        if type[1] == :int
+          return :int_
+        elsif type[1] == :int_
+          return :int__
+        else
+          raise "[type error] invalid array type: #{type[1]} #{expr.pos_s}"
+        end
+      elsif type[0] == :pointer
+        if type[1] == :int
+          return :int_
+        else
+          raise "[type error] invalid *pointer type: #{type[1]} #{expr.pos_s}"
+        end
+      end
+      return type
+    end
+  end
 end
