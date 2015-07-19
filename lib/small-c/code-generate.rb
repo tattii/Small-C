@@ -240,10 +240,10 @@ module SmallC
         ]
 
       when :addrexp
-        var_addr = intmd[:var].to_addr
+        var_offset = intmd[:var].offset
         dest_addr = dest.to_addr
         return [
-          Instr.new('li', [Reg1, var_addr]),
+          Instr.new('addi', [Reg1, '$fp', var_offset]),
           Instr.new('sw', [Reg1, dest_addr])
         ]
       end
