@@ -199,7 +199,7 @@ module SmallC
       when :pointer
         t = gen_decl()
         return [
-          convert_expr(node.attr[0], t),
+          convert_address(node, t),
           {type: :readstmt, dest: dest, src: t}
         ]
 

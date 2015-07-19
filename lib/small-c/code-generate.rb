@@ -35,19 +35,15 @@ module SmallC
 
       fundefs_code = fundefs.map {|fundef| convert_fundef(fundef)}.flatten
 
-      if main == nil
-        raise "[error] main function undefined"
-      end
-      
       return [
         Dir.new(".text", []),
         Dir.new(".globl", ["main"]),
         fundefs_code,
         convert_fundef(main),
-        Instr.new('jal', ['$ra']),
         Dir.new(".data", []),
         Label.new("newline"),
-        Dir.new(".ascii", ['"\n"'])
+        Dir.new(".ascii", ['"\n"']),
+        convert_global(global_vars)
       ].flatten
     end
 
@@ -62,7 +58,8 @@ module SmallC
       return [
         Label.new(f),
         savecode(localvarsize, argsize),
-        code
+        code,
+        restorecode(localvarsize, argsize),
       ].flatten
     end
 
@@ -177,12 +174,24 @@ module SmallC
     def convert_expr(intmd, dest)
       case intmd[:type]
       when :varexp
-        src_addr = intmd[:var].to_addr
-        dest_addr = dest.to_addr
-        return [
-          Instr.new('lw', [Reg1, src_addr]),
-          Instr.new('sw', [Reg1, dest_addr])
-        ]
+        # global variable
+        if intmd[:var].lev == 0
+          dest_addr = dest.to_addr
+          return [
+            Instr.new('la', [Reg1, intmd[:var].name]),
+            Instr.new('lw', [Reg2, "0(#{Reg1})"]),
+            Instr.new('sw', [Reg2, dest_addr])
+          ]
+
+        # local variable
+        else
+          src_addr = intmd[:var].to_addr
+          dest_addr = dest.to_addr
+          return [
+            Instr.new('lw', [Reg1, src_addr]),
+            Instr.new('sw', [Reg1, dest_addr])
+          ]
+        end
 
       when :intexp
         num = intmd[:num] 
@@ -233,14 +242,23 @@ module SmallC
       when :addrexp
         var_addr = intmd[:var].to_addr
         dest_addr = dest.to_addr
-
         return [
-          Instr.new('lw', [Reg1, var_addr]),
+          Instr.new('li', [Reg1, var_addr]),
           Instr.new('sw', [Reg1, dest_addr])
         ]
       end
     end
 
+
+    def convert_global(decls)
+      decls.map do |decl|
+        if decl[:var].type[0] == :array
+          [Label.new(decl[:var].name), Dir.new(".word", Array.new(decl[:var].type[2]).fill(0))]
+        else
+          [Label.new(decl[:var].name), Dir.new(".word", [0])]
+        end
+      end
+    end
 
     def next_label
       label = "L" + @labels.to_s
