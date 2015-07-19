@@ -94,8 +94,9 @@ module SmallC
       case expr.type
       when :assign
         # object check
-        unless expr.attr[0].type == :pointer \
-          || expr.attr[0].attr[:name].kind == :var && expr.attr[0].type[0] != :array
+        unless expr.attr[0].type == :pointer ||
+          expr.attr[0].attr[:name].kind == :var && expr.attr[0].type[0] != :array ||
+          expr.attr[0].attr[:name].kind == :parm
           raise "[object error] invalid assign object #{expr.pos_s}"
         end
 

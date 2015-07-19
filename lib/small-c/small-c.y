@@ -115,7 +115,7 @@ rule
                          | mult_expr '/' unary_expr             { result = Node.new(:op, ['/', val[0], val[2]], val[1][:pos]) }
 
   unary_expr             : postfix_expr 
-                         | '-' unary_expr                       { result = Node.new(:op, ['-', 0, val[1]], val[0][:pos]) }
+                         | '-' unary_expr                       { result = Node.new(:op, ['-', Node.new(:number, {value:0}, nil), val[1]], val[0][:pos]) }
                          | '&' unary_expr                       { # for syntax sugar
                                                                   if val[1].type == :pointer
                                                                     result = val[1].attr[0]

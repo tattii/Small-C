@@ -122,7 +122,7 @@ module SmallC
         # $spから逆順にストア
         args_code = args.map do |arg|
           offset_sp += 4
-          return [
+          [
             Instr.new('lw', [Reg1, arg.to_addr]),
             Instr.new('sw', [Reg1, "#{offset_sp}($sp)"])
           ]
@@ -253,7 +253,8 @@ module SmallC
     def convert_global(decls)
       decls.map do |decl|
         if decl[:var].type[0] == :array
-          [Label.new(decl[:var].name), Dir.new(".word", Array.new(decl[:var].type[2]).fill(0))]
+          array = Array.new(decl[:var].type[2]).fill(0)
+          [Label.new(decl[:var].name), Dir.new(".word", array)] 
         else
           [Label.new(decl[:var].name), Dir.new(".word", [0])]
         end
@@ -303,7 +304,7 @@ module SmallC
         end
       end
 
-      return codes.join("\n")
+      return codes.join("\n") + "\n"
     end
   end
 end

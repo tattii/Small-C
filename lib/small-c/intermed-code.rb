@@ -25,6 +25,7 @@ module SmallC
         end
 
       when :function_def
+        @temp_num = 0
         var = node.attr[:decl].attr[:name]
         params = node.attr[:decl].attr[:params].map do |param| 
           {type: :vardecl, var: param.attr[:name]}

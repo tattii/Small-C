@@ -787,7 +787,7 @@ module_eval(<<'.,.,', 'small-c.y', 114)
 
 module_eval(<<'.,.,', 'small-c.y', 117)
   def _reduce_70(val, _values, result)
-     result = Node.new(:op, ['-', 0, val[1]], val[0][:pos]) 
+     result = Node.new(:op, ['-', Node.new(:number, {value:0}, nil), val[1]], val[0][:pos]) 
     result
   end
 .,.,
