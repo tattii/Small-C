@@ -95,8 +95,8 @@ module SmallC
       when :assign
         # object check
         unless expr.attr[0].type == :pointer ||
-          expr.attr[0].attr[:name].kind == :var && expr.attr[0].type[0] != :array ||
-          expr.attr[0].attr[:name].kind == :parm
+          expr.attr[0].type == :variable && 
+          expr.attr[0].attr[:name].type[0] != :array
           raise "[object error] invalid assign object #{expr.pos_s}"
         end
 

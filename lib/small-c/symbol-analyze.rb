@@ -102,7 +102,6 @@ module SmallC
         if defined = @env.lookup(name)
           if defined.kind == :proto
             if type != defined.type
-              pp defined.type
               raise "[error] proto: type differs #{name} #{node.pos_s}"
             end
           else
