@@ -86,17 +86,17 @@ module SmallC
         ].flatten
 
       when :whilestmt
+        cond_code = intmd[:cond].map {|stmt| convert_stmt(stmt, 0, 0)}
         cond_addr = intmd[:var].to_addr
         code = intmd[:stmt] ? convert_stmt(intmd[:stmt], localvarsize, argsize) : []
         label1 = next_label()
         label2 = next_label()
         return [
-          Instr.new('lw', [Reg1, cond_addr]),
-          Instr.new('beqz', [Reg1, label2]),
           Label.new(label1),
-          code,
+          cond_code,
           Instr.new('lw', [Reg1, cond_addr]),
           Instr.new('beqz', [Reg1, label2]),
+          code,
           Instr.new('j', [label1]),
           Label.new(label2)
         ].flatten
