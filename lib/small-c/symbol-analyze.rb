@@ -24,6 +24,10 @@ module SmallC
           decl = d.attr
           type = type_decls
 
+          if type != :int
+            raise "[error] invalid var type: #{type} #{node.pos_s}"
+          end
+
           # pointer
           if decl[0] == "*"
             type = [:pointer, type]
@@ -57,6 +61,11 @@ module SmallC
       when :param
         name = node.attr[:name]
         type = node.attr[:type]
+
+        if type != :int
+          raise "[error] invalid param type: #{type} #{node.pos_s}"
+        end
+
         if name[0] == "*"
           name = name[1]
           type = [:pointer, type]

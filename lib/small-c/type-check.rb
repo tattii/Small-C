@@ -130,17 +130,22 @@ module SmallC
         e2_type = check_type(expr.attr[2])
         if e1_type == :int && e2_type == :int
           return :int
-        elsif op == '+' || op == '-'
-          if   e1_type == :int_ && e2_type == :int \
-            || e2_type == :int_ && e1_type == :int
+        elsif op == '+'
+          if   e1_type == :int_ && e2_type == :int ||
+               e2_type == :int_ && e1_type == :int
             return :int_
-          elsif e1_type == :int__ && e2_type == :int \
-            ||  e2_type == :int__ && e1_type == :int
+          elsif e1_type == :int__ && e2_type == :int ||
+                e2_type == :int__ && e1_type == :int
             return :int__
           end
-        else
-          raise "[type error] #{op} type differs: #{e1_type},#{e2_type} #{expr.pos_s}"
+        elsif op == '-'
+          if   e1_type == :int_ && e2_type == :int
+            return :int_
+          elsif e1_type == :int__ && e2_type == :int
+            return :int__
+          end
         end
+        raise "[type error] #{op} type differs: #{e1_type},#{e2_type} #{expr.pos_s}"
 
       when :address
         # object check
