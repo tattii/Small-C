@@ -144,12 +144,12 @@ module SmallC
 
       when :address
         # object check
-        if expr.attr[0].kind != :var
-          raise "[object error] &address operand must be var #{expr.pos_s}"
+        if expr.attr[0].type != :variable
+          raise "[object error] &address operand must be variable #{expr.pos_s}"
         end
 
         if check_type(expr.attr[0]) == :int
-          return :int
+          return :int_
         else
           raise "[type error] &address type must be int #{expr.pos_s}"
         end

@@ -196,10 +196,9 @@ module SmallC
         end
 
       when :address
-        t = gen_decl()
+        var = node.attr[0].attr[:name]
         return [
-          convert_expr(node.attr[0], t),
-          {type: :letstmt, var: dest, exp: {type: :addrexp, var: t}}
+          {type: :letstmt, var: dest, exp: {type: :addrexp, var: var}}
         ]
 
       when :pointer
@@ -242,7 +241,13 @@ module SmallC
     end
 
     def convert_address(pointer, dest)
-      if pointer.attr[0].type == :op
+      if pointer.attr[0].type == :variable
+        var = {type: :addrexp, var: pointer.attr[0].attr[:name]}
+        return [
+          {type: :letstmt, var: dest, exp: var}
+        ]
+
+      elsif pointer.attr[0].type == :op
         node = pointer.attr[0]
         op = node.attr[0]
         e1 = node.attr[1]
