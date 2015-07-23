@@ -43,7 +43,7 @@ rule
   type_specifier         : INT                                  { result[:value] = :int }
                          | VOID                                 { result[:value] = :void }
 
-  statement              : ';'                                  { result = Node.new(:skip) }
+  statement              : ';'                                  { result = Node.new(:skip, [], nil) }
                          | expression ';'                       { result = Node.new(:expr, [val[0]], nil) } 
                          | compound_statement
                          | IF '(' expression ')' statement      { result = Node.new(:if, {cond:val[2], stmt:val[4], else_stmt:nil}, val[0][:pos]) }
@@ -54,7 +54,7 @@ rule
                                                                 { # for syntax sugar
                                                                   stmt = val[8]
                                                                   iter = Node.new(:expr, [val[6]], nil)
-                                                                  if (stmt.type == :compound_stmt)
+                                                                  if (!stmt.is_a?(Array) && stmt.type == :compound_stmt)
                                                                     stmt.attr[:stmts].push iter
                                                                   else
                                                                     stmt = Node.new(:compound_stmt, {decls:[], stmts:[stmt, iter].flatten}, val[0][:pos])

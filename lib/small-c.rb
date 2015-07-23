@@ -55,12 +55,12 @@ module SmallC
 
       intermed_code = IntermedCode.new.convert(ast)
       AssignAddr.new.assign(intermed_code)
-      pp intermed_code
+     # pp intermed_code
 
       code = CodeGenerate.new.convert(intermed_code)
-      pp code
+     # pp code
 
-      print CodeGenerate.print_code(code)
+     # print CodeGenerate.print_code(code)
     rescue Racc::ParseError => e
       puts e.message
     rescue RuntimeError => e

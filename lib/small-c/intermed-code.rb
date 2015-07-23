@@ -107,6 +107,7 @@ module SmallC
           e = node.attr[1]
           t1 = gen_decl()
           t2 = gen_decl()
+
           return [
             convert_expr(e, t1),
             {type: :letstmt, var: t2, exp: {type: :addrexp, var: x}},
@@ -125,6 +126,7 @@ module SmallC
             {type: :writestmt, dest: t1, src: t2},
             {type: :letstmt, var: dest, exp: {type: :varexp, var:t2}}
           ]
+
         end
 
       when :op
@@ -137,20 +139,29 @@ module SmallC
 
         if e1.type == :variable && e1.attr[:name].type[0] == :pointer
           d4 = gen_decl()
-
-          if (op == '+' || op == '-') && 
-            e1.type == :variable &&
-            (e1.attr[:name].type[0] == :array || e1.attr[:name].type[0] == :pointer)
+          if (op == '+' || op == '-')
             addr = {type: :addrexp, var: e1.attr[:name]}
-            return [
-              {type: :letstmt, var: d1, exp: addr},
-              convert_expr(e2.attr[0][0], d2),
-              {type: :letstmt, var: d3, exp: {type: :intexp, num: 4}},
-              {type: :letstmt, var: d4, exp: 
-                {type: :aopexp, op: '*', var1: d2, var2: d3}},
-              {type: :letstmt, var: dest, exp: 
-                {type: :aopexp, op: op, var1: d1, var2: d4}}
-            ]
+            if e2.type == :number
+              return [
+                {type: :letstmt, var: d1, exp: addr},
+                convert_expr(e2, d2),
+                {type: :letstmt, var: d3, exp: {type: :intexp, num: 4}},
+                {type: :letstmt, var: d4, exp: 
+                  {type: :aopexp, op: '*', var1: d2, var2: d3}},
+                {type: :letstmt, var: dest, exp: 
+                  {type: :aopexp, op: op, var1: d1, var2: d4}}
+              ]
+            else
+              return [
+                {type: :letstmt, var: d1, exp: addr},
+                convert_expr(e2.attr[0][0], d2),
+                {type: :letstmt, var: d3, exp: {type: :intexp, num: 4}},
+                {type: :letstmt, var: d4, exp: 
+                  {type: :aopexp, op: '*', var1: d2, var2: d3}},
+                {type: :letstmt, var: dest, exp: 
+                  {type: :aopexp, op: op, var1: d1, var2: d4}}
+              ]
+            end
           end
         else
           return [

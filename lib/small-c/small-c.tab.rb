@@ -541,7 +541,7 @@ module_eval(<<'.,.,', 'small-c.y', 43)
 
 module_eval(<<'.,.,', 'small-c.y', 45)
   def _reduce_28(val, _values, result)
-     result = Node.new(:skip) 
+     result = Node.new(:skip, [], nil) 
     result
   end
 .,.,
@@ -581,7 +581,7 @@ module_eval(<<'.,.,', 'small-c.y', 53)
      # for syntax sugar
                                                                   stmt = val[8]
                                                                   iter = Node.new(:expr, [val[6]], nil)
-                                                                  if (stmt.type == :compound_stmt)
+                                                                  if (!stmt.is_a?(Array) && stmt.type == :compound_stmt)
                                                                     stmt.attr[:stmts].push iter
                                                                   else
                                                                     stmt = Node.new(:compound_stmt, {decls:[], stmts:[stmt, iter].flatten}, val[0][:pos])
