@@ -135,11 +135,30 @@ module SmallC
         d2 = gen_decl()
         d3 = gen_decl()
 
-        return [
-          convert_expr(e1, d1),
-          convert_expr(e2, d2),
-          {type: :letstmt, var: dest, exp: {type: :aopexp, op: op, var1: d1, var2: d2}}
-        ]
+        if e1.type == :variable && e1.attr[:name].type[0] == :pointer
+          d4 = gen_decl()
+
+          if (op == '+' || op == '-') && 
+            e1.type == :variable &&
+            (e1.attr[:name].type[0] == :array || e1.attr[:name].type[0] == :pointer)
+            addr = {type: :addrexp, var: e1.attr[:name]}
+            return [
+              {type: :letstmt, var: d1, exp: addr},
+              convert_expr(e2.attr[0][0], d2),
+              {type: :letstmt, var: d3, exp: {type: :intexp, num: 4}},
+              {type: :letstmt, var: d4, exp: 
+                {type: :aopexp, op: '*', var1: d2, var2: d3}},
+              {type: :letstmt, var: dest, exp: 
+                {type: :aopexp, op: op, var1: d1, var2: d4}}
+            ]
+          end
+        else
+          return [
+            convert_expr(e1, d1),
+            convert_expr(e2, d2),
+            {type: :letstmt, var: dest, exp: {type: :aopexp, op: op, var1: d1, var2: d2}}
+          ]
+        end
 
       when :eq_op, :rel_op
         op = node.attr[0]

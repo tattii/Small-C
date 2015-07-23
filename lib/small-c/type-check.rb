@@ -53,7 +53,7 @@ module SmallC
 
       when :return
         if @function_return_type == :void
-          if node.attr[0]
+          if node.attr[0].length != 0
             raise "[type error] return type is void #{node.pos_s}"
           else
             return true
