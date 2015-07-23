@@ -53,11 +53,11 @@ rule
                          | FOR '(' expression_opt ';' expression_opt ';' expression_opt ')' statement
                                                                 { # for syntax sugar
                                                                   stmt = val[8]
-                                                                  iter = val[6]
+                                                                  iter = Node.new(:expr, [val[6]], nil)
                                                                   if (stmt.type == :compound_stmt)
-                                                                    stmt.attr[:stmts].concat iter
+                                                                    stmt.attr[:stmts].push iter
                                                                   else
-                                                                    stmt = Node.new(:compound_stmt, {decls:[], stmts:[stmt, iter]}, val[0][:pos])
+                                                                    stmt = Node.new(:compound_stmt, {decls:[], stmts:[stmt, iter].flatten}, val[0][:pos])
                                                                   end
                                                                   result = [
                                                                     Node.new(:expr, [val[2]], nil),
@@ -79,7 +79,7 @@ rule
                          | statement_list
 
   statement_list         : statement                            { result = val[0].is_a?(Array) ? val[0] : [val[0]] }
-                         | statement_list statement             { result.push val[1].is_a?(Array) ? val[1].flatten : val[1] }
+                         | statement_list statement             { result = val[0].push(val[1]).flatten }
 
   expression_opt         : /* optional */                       { result = [] }
                          | expression

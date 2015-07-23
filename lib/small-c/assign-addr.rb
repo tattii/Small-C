@@ -35,6 +35,7 @@ module SmallC
         end
       end
 
+#pp compd
       compd[:stmts].each do |stmt|
         case stmt[:type]
         when :compdstmt

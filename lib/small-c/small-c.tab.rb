@@ -580,11 +580,11 @@ module_eval(<<'.,.,', 'small-c.y', 53)
   def _reduce_34(val, _values, result)
      # for syntax sugar
                                                                   stmt = val[8]
-                                                                  iter = val[6]
+                                                                  iter = Node.new(:expr, [val[6]], nil)
                                                                   if (stmt.type == :compound_stmt)
-                                                                    stmt.attr[:stmts].concat iter
+                                                                    stmt.attr[:stmts].push iter
                                                                   else
-                                                                    stmt = Node.new(:compound_stmt, {decls:[], stmts:[stmt, iter]}, val[0][:pos])
+                                                                    stmt = Node.new(:compound_stmt, {decls:[], stmts:[stmt, iter].flatten}, val[0][:pos])
                                                                   end
                                                                   result = [
                                                                     Node.new(:expr, [val[2]], nil),
@@ -650,7 +650,7 @@ module_eval(<<'.,.,', 'small-c.y', 80)
 
 module_eval(<<'.,.,', 'small-c.y', 81)
   def _reduce_44(val, _values, result)
-     result.push val[1].is_a?(Array) ? val[1].flatten : val[1] 
+     result = val[0].push(val[1]).flatten 
     result
   end
 .,.,
